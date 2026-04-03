@@ -1,0 +1,7 @@
+export const MY_COLLECTIONS = [
+  "0x718a7d4153a93331524e00d04a9bb6acffec4d50",
+  "0xddcd6cf61e81c6e22a082841a388a19984ff4745",
+  "0x0b7331056821b49d6a36ed2ec3666de1d482f8a6",
+  "0x8c88f200ea6c9a3b812424e13baab5b0a49657c3",
+  "0x83bf87ce3eb9b3ddd552fe7dff9d63acaec01b7d"
+];
