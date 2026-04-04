@@ -1,18 +1,20 @@
 {
-  "name": "music-nft-studio",
+  "name": "manhhungmarketplace",
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3001",
-    "start": "next start -p 3001",
-    "build": "next build"
+    "dev": "next dev -p 4000",
+    "build": "next build",
+    "start": "next start -p 4000"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.6.1",
     "@supabase/supabase-js": "^2.101.1",
     "axios": "^1.14.0",
-    "ethers": "^6.13.2",
+    "dotenv": "^17.4.0",
+    "ethers": "^6.16.0",
     "fs": "^0.0.1-security",
+    "googleapis": "^171.4.0",
     "moralis": "^2.27.2",
     "next": "^14.2.15",
     "node-cron": "^4.2.1",
@@ -20,6 +22,7 @@
     "qrcode.react": "^4.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "vietqr": "^1.1.9",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
@@ -42,13 +45,13 @@
   "main": "hardhat.config.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hunglouis/music-nft-studio.git"
+    "url": "git+https://github.com/hunglouis/manhhungmarketplace.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/hunglouis/music-nft-studio/issues"
+    "url": "https://github.com/hunglouis/manhhungmarketplace/issues"
   },
-  "homepage": "https://github.com/hunglouis/music-nft-studio#readme"
+  "homepage": "https://github.com/hunglouis/manhhungmarketplace#readme"
 }

@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     }
 
     // 3. Gọi Bot tự động chuyển NFT (Dùng Private Key trên Server)
-    const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_URL);
+    const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
     const botWallet = new ethers.Wallet(process.env.BOT_PRIVATE_KEY!, provider);
     const contract = new ethers.Contract(process.env.CONTRACT_ADDRESS!, ABI_CUA_BAN, botWallet);
 
