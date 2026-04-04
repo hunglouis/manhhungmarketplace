@@ -8,6 +8,9 @@ const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+const ABI_CUA_BAN = [
+  "function transferFrom(address from, address to, uint256 tokenId) public"
+];
 
 export async function POST(req) {
   try {
