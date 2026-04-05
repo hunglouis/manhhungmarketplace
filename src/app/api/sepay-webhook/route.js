@@ -1,16 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { ethers } from 'ethers';
-import ABI_CUA_BAN from './abi.json';
+import ABI_CUA_BAN from './MyTokenNew.json';
 
 // Khởi tạo Supabase Admin (dùng Service Role Key để có quyền ghi)
 const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
-const ABI_CUA_BAN = [
-  "function transferFrom(address from, address to, uint256 tokenId) public"
-];
+
 
 export async function POST(req) {
   try {
