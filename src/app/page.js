@@ -1,226 +1,234 @@
 "use client";
+import React, { useState, useEffect } from 'react';
+import { ethers } from 'ethers';
+import { createClient } from '@supabase/supabase-js';
 
-import { useState, useEffect } from "react";
-import { ethers } from "ethers";
-import axios from "axios";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
+ // Thông tin ngân hàng của bạn (Sửa tại đây)
+const MY_BANK = "BIDV"; 
+const MY_ACCOUNT = "3120464627";
 
-export default function Page() {
-  const [wallet, setWallet] = useState(null);
-  const [approved, setApproved] = useState(false);
-  const [status, setStatus] = useState("");
 
-  const [amount, setAmount] = useState(0.01);
-  const [orderId, setOrderId] = useState(null);
-  const [qr, setQr] = useState(null);
+export default function MusicNFTStudio() {
+  const [amount, setAmount] = useState(""); 
+  const [walletAddress, setWalletAddress] = useState("");
+  const [orderId, setOrderId] = useState("");
+  const [isPending, setIsPending] = useState(false);
+  const [nfts, setNfts] = useState([]);
+  const [rates, setRates] = useState({ eth: 1, usdt: 25000 }); // Mặc định để tránh lỗi chia cho 0
+  const [selectedNft, setSelectedNft] = useState(null);
+  const [orderCode, setOrderCode] = useState("");
+  const [playingId, setPlayingId] = useState(null);
+    const [ethPriceUSD, setEthPriceUSD] = useState(2065); // Giá mặc định nếu API lỗi
+	const [order, setOrder] = useState(null);
+    const [authEmail, setAuthEmail] = useState('');
+    const [showQRModal, setShowQRModal] = useState(false);
+    const [activeQRUrl, setActiveQRUrl] = useState('');
+    const [userWalletAddress, setUserWalletAddress] = useState('');
 
-  const contractAddress = "0xYourContractAddress";
-  const botAddress = "0xYourBotAddress";
+    useEffect(() => {
+        fetchNFTs();
+    }, []);
+	const fetchETHPrice = async () => {
+  try {
+    const res = await axios.get('https://coingecko.com');
+    const price = res.data.ethereum.usd;
+    setEthPriceUSD(price);
+    console.log("🚀 Giá ETH mới nhất:", price, "USD");
+  } catch (err) {
+    console.error("Không lấy được giá ETH mới:", err);
+  }
+};
 
-  // ✅ ABI tối thiểu
-  const contractABI = [
-    {
-      inputs: [
-        { internalType: "address", name: "operator", type: "address" },
-        { internalType: "bool", name: "approved", type: "bool" }
-      ],
-      name: "setApprovalForAll",
-      outputs: [],
-      stateMutability: "nonpayable",
-      type: "function"
-    },
-    {
-      inputs: [
-        { internalType: "address", name: "owner", type: "address" },
-        { internalType: "address", name: "operator", type: "address" }
-      ],
-      name: "isApprovedForAll",
-      outputs: [{ internalType: "bool", name: "", type: "bool" }],
-      stateMutability: "view",
-      type: "function"
-    }
-  ];
+// Tự động cập nhật mỗi 5 phút
+useEffect(() => {
+  fetchETHPrice();
+  const interval = setInterval(fetchETHPrice, 300000); 
+  return () => clearInterval(interval);
+}, []);
 
-  // 🔗 CONNECT WALLET
-  const connectWallet = async () => {
-    if (!window.ethereum) {
-      alert("Cài MetaMask!");
-      return;
-    }
-
-    const provider = new ethers.BrowserProvider(window.ethereum);
-
-    await window.ethereum.request({
-      method: "eth_requestAccounts"
-    });
-
-    const signer = await provider.getSigner();
-    const address = await signer.getAddress();
-
-    setWallet(address);
-    setStatus("Đã kết nối ví");
-  };
-
-  // 🔍 CHECK APPROVE
-  const checkApproval = async () => {
-    if (!wallet) return;
-
-    const provider = new ethers.BrowserProvider(window.ethereum);
-
-    const contract = new ethers.Contract(
-      contractAddress,
-      contractABI,
-      provider
-    );
-
-    const isApproved = await contract.isApprovedForAll(
-      wallet,
-      botAddress
-    );
-
-    setApproved(isApproved);
-  };
-
-  // 🔐 APPROVE BOT
-  const approveBot = async () => {
-    try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-
-      await window.ethereum.request({
-        method: "eth_requestAccounts"
-      });
-
-      const signer = await provider.getSigner();
-
-      const contract = new ethers.Contract(
-        contractAddress,
-        contractABI,
-        signer
-      );
-
-      setStatus("Đang approve...");
-
-      const tx = await contract.setApprovalForAll(botAddress, true);
-      await tx.wait();
-
-      setApproved(true);
-      setStatus("✅ Approve thành công!");
-    } catch (err) {
-      console.error(err);
-      setStatus("❌ Lỗi approve");
-    }
-  };
-
-  // 🧾 TẠO ORDER + QR
-  const createOrder = async () => {
-    try {
-      setStatus("Đang tạo đơn...");
-
-      const res = await axios.post(
-        "http://localhost:4000/create-order",
-        {
-          amount,
-          wallet
+    const fetchNFTs = async () => {
+        const { data } = await supabase.from('hunglouis').select('*').order('created_at', { ascending: false });
+        setNfts(data || []);
+    };
+ // 3. KẾT NỐI VÍ METAMASK
+    const connectWallet = async () => {
+        if (typeof window.ethereum !== 'undefined') {
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const address = accounts[0];
+                setUserWalletAddress(`${address.substring(0, 6)}...${address.substring(address.length - 4)}`);
+                setAuthEmail(address);
+            } catch (err) {
+                console.error("Lỗi kết nối ví:", err);
+            }
+        } else {
+            alert("Vui lòng cài đặt MetaMask!");
         }
-      );
+    };
+ 
 
-      setOrderId(res.data.orderId);
-      setQr(res.data.qrImage);
-
-      setStatus("⏳ Chờ thanh toán...");
-    } catch (err) {
-      console.error(err);
-      setStatus("❌ Lỗi tạo đơn");
-    }
-  };
-
-  // 🔄 POLL PAYMENT
+  // 1. LẤY TỶ GIÁ REALTIME (30 giây cập nhật một lần)
   useEffect(() => {
-    if (!orderId) return;
-
-    const interval = setInterval(async () => {
+    const fetchRates = async () => {
       try {
-        const res = await axios.get(
-          `http://localhost:4000/order/${orderId}`
-        );
-
-        if (res.data?.status === "paid") {
-          setStatus("✅ Đã thanh toán!");
-          clearInterval(interval);
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    }, 3000);
-
+        const res = await fetch('https://coingecko.com');
+        const data = await res.json();
+        setRates({ eth: data.ethereum.vnd, usdt: data.tether.vnd });
+      } catch (err) { console.error("Lỗi cập nhật tỷ giá:", err); }
+    };
+    fetchRates();
+    const interval = setInterval(fetchRates, 30000);
     return () => clearInterval(interval);
-  }, [orderId]);
+  }, []);
 
-  // 🔄 CHECK APPROVE
+  // 2. LẤY DANH SÁCH NFT TỪ SUPABASE
   useEffect(() => {
-    if (wallet) checkApproval();
-  }, [wallet]);
+    const fetchNfts = async () => {
+      const { data, error } = await supabase.from('hunglouis').select('*');
+      if (data) setNfts(data);
+    };
+    fetchNfts();
+  }, []);
+
+  
+  // 4. HÀM XỬ LÝ MUA HÀNG (TẠO ĐƠN VÀO SUPABASE)
+  const handleBuy = async (nft) => {
+    if (!walletAddress) return alert("Vui lòng kết nối ví trước!");
+    
+    const newCode = "MH" + Math.floor(Math.random() * 1000000);
+    try {
+      const { error } = await supabase.from('order').insert([
+        { 
+          amount: nft.price_vnd, 
+          buyer_address: walletAddress, 
+          payment_content: newCode, 
+          status: 'pending', 
+          nft_id: nft.id 
+        }
+      ]);
+      if (error) throw error;
+      setOrderCode(newCode);
+      setSelectedNft(nft);
+      setIsPending(true);
+    } catch (err) { alert("Lỗi tạo đơn hàng: " + err.message); }
+  };
 
   return (
-    <div style={{ padding: 40, fontFamily: "sans-serif" }}>
-      <h1>🧾 Web3 Checkout Full</h1>
+    <div className="min-h-screen bg-slate-950 text-slate-200 p-4 md:p-10 font-sans">
+      <div className="max-w-7xl mx-auto">
+        
+        {/* HEADER SECTION */}
+        <header className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6 bg-slate-900/50 p-6 rounded-3xl border border-slate-800">
+          <div>
+            <h1 className="text-3xl font-black italic tracking-tighter text-white uppercase">Manh Hung Marketplace</h1>
+            <p className="text-slate-500 text-xs mt-1 uppercase tracking-widest">Decentralized Music NFT Store</p>
+          </div>
+          {!walletAddress ? (
+            <button onClick={connectWallet} className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-2xl font-black transition-all shadow-lg shadow-blue-900/20 active:scale-95">KẾT NỐI VÍ 🦊</button>
+          ) : (
+            <div className="bg-slate-800 px-4 py-2 rounded-xl border border-blue-500/30">
+              <span className="text-[10px] text-blue-400 block font-bold uppercase mb-1">Ví đã kết nối:</span>
+              <span className="font-mono text-xs text-white">{walletAddress.slice(0,6)}...{walletAddress.slice(-4)}</span>
+            </div>
+          )}
+        </header>
 
-      {/* CONNECT */}
-      <button onClick={connectWallet}>
-        {wallet ? "✅ Connected" : "🔗 Connect Wallet"}
-      </button>
+        {/* SHOWROOM SECTION */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          {nfts.map((nft) => (
+            <div key={nft.id} className="bg-slate-900 rounded-[2.5rem] overflow-hidden border border-slate-800 shadow-2xl transition hover:border-blue-600 group">
+              
+              {/* MEDIA VIEW: CLICK TO PLAY */}
+              <div 
+                className="relative h-72 cursor-pointer overflow-hidden bg-black"
+                onClick={() => setPlayingId(playingId === nft.id ? null : nft.id)}
+              >
+                {playingId === nft.id ? (
+                  <video src={nft.media_url} autoPlay controls className="w-full h-full object-contain bg-black" />
+                ) : (
+                  <>
+                    <img src={nft.image_url} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500 group-hover:scale-105" alt={nft.name} />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                       <div className="bg-white/10 backdrop-blur-md p-6 rounded-full border border-white/20 transform transition group-hover:scale-110 shadow-2xl">
+                          <span className="text-2xl">▶️</span>
+                       </div>
+                    </div>
+                  </>
+                )}
+              </div>
 
-      <p>{wallet}</p>
+              {/* PRICING & BUY SECTION */}
+              <div className="p-7 space-y-5">
+                <h3 className="text-xl font-black text-white">{nft.name}</h3>
+                
+                {/* REALTIME RATES */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center">
+                    <span className="block text-[8px] text-slate-500 font-bold uppercase mb-1">ETH</span>
+                    <span className="text-[10px] font-black text-orange-400">{(nft.price_vnd / rates.eth).toFixed(4)}</span>
+                  </div>
+                  <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center">
+                    <span className="block text-[8px] text-slate-500 font-bold uppercase mb-1">USDT</span>
+                    <span className="text-[10px] font-black text-blue-400">{(nft.price_vnd / rates.usdt).toFixed(2)}</span>
+                  </div>
+                  <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center">
+                    <span className="block text-[8px] text-slate-500 font-bold uppercase mb-1">VND</span>
+                    <span className="text-[10px] font-black text-green-400">{(nft.price_vnd / rates.vnd).toFixed(2)}</span>
+                  </div>
+                </div>
 
-      {/* AMOUNT */}
-      <div style={{ marginTop: 20 }}>
-        <label>Số tiền:</label>
-        <input
-          type="number"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-        />
-      </div>
-
-      {/* APPROVE */}
-      {wallet && !approved && (
-        <button onClick={approveBot}>
-          🔐 Approve Bot
-        </button>
-      )}
-
-      {/* CREATE ORDER */}
-      {approved && (
-        <button
-          onClick={createOrder}
-          style={{ marginTop: 20 }}
-        >
-          💳 Tạo QR thanh toán
-        </button>
-      )}
-
-      {/* QR */}
-      {qr && (
-        <div style={{ marginTop: 20 }}>
-          <img src={qr} width={250} />
-          <p>Order: {orderId}</p>
+                <button 
+                  onClick={() => handleBuy(nft)}
+                  className="w-full py-4 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-orange-950/20 transition-all active:scale-95"
+                >
+                  MUA NFT NGAY
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
-      )}
 
-      {/* STATUS */}
-      <div style={{ marginTop: 20 }}>
-        <b>Status:</b> {status}
+        {/* --- MODAL THANH TOÁN QR --- */}
+        {isPending && selectedNft && (
+          <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-300">
+             <div className="bg-white text-slate-900 p-8 rounded-[3rem] max-w-sm w-full relative shadow-[0_0_50px_rgba(59,130,246,0.3)] border-4 border-blue-500/20">
+                <button onClick={() => setIsPending(false)} className="absolute top-6 right-6 text-2xl font-bold text-slate-400 hover:text-red-500 transition">✕</button>
+                
+                <h2 className="text-center font-black text-xl mb-2 uppercase tracking-tighter">Thanh toán đơn hàng</h2>
+                <p className="text-center text-[10px] text-slate-400 font-bold uppercase mb-8 italic tracking-widest">Vui lòng quét mã qua App Ngân hàng</p>
+                
+                <div className="bg-slate-100 p-4 rounded-[2rem] mb-6 flex justify-center border-2 border-dashed border-slate-300 shadow-inner">
+                  <img 
+                    src={`https://sepay.vn{selectedNft.price_vnd}&des=${orderCode}`} 
+                    className="w-64 h-64 mix-blend-multiply"
+                    alt="VietQR"
+                  />
+                </div>
+                
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-2">
+                   <div className="flex justify-between items-center"><span className="text-[10px] text-slate-400 font-bold uppercase">Nội dung:</span><span className="font-mono font-black text-blue-600 text-lg">{orderCode}</span></div>
+                   <div className="flex justify-between items-center pt-2 border-t border-slate-200"><span className="text-[10px] text-slate-400 font-bold uppercase">Số tiền:</span><span className="font-black text-red-600 text-lg">{selectedNft.price_vnd.toLocaleString()} VND</span></div>
+                </div>
+
+                <div className="mt-8 flex items-center justify-center gap-3">
+                   <div className="w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic text-center">Hệ thống đang chờ xử lý...</p>
+                </div>
+             </div>
+          </div>
+        )}
+
+        <footer className="mt-20 text-center py-10 border-t border-slate-900">
+           <p className="text-[10px] text-slate-600 font-bold uppercase tracking-[10px]">Manh Hung Marketplace • 2026</p>
+        </footer>
       </div>
-
-      {/* SUCCESS */}
-      {status.includes("Đã thanh toán") && (
-        <div style={{ marginTop: 20, background: "#d4edda", padding: 20 }}>
-          ✅ Thanh toán thành công  
-          👉 Bot có thể mint NFT / unlock content
-        </div>
-      )}
     </div>
   );
 }
+
 
 const styles = {
   container: { backgroundColor: '#050505', color: '#fff', minHeight: '100vh', padding: '120px 40px' },
