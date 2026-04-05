@@ -17,7 +17,7 @@ export default function MusicNFTStudio() {
   const [orderId, setOrderId] = useState("");
   const [isPending, setIsPending] = useState(false);
   const [nfts, setNfts] = useState([]);
-  const [rates, setRates] = useState({ eth: 1, usdt: 25000 }); // Mặc định để tránh lỗi chia cho 0
+  const [rates, setRates] = useState({ eth: 1, usdt: 2065 ,vnd: 60000000}); // Mặc định để tránh lỗi chia cho 0
   const [selectedNft, setSelectedNft] = useState(null);
   const [orderCode, setOrderCode] = useState("");
   const [playingId, setPlayingId] = useState(null);
@@ -54,20 +54,24 @@ useEffect(() => {
         setNfts(data || []);
     };
  // 3. KẾT NỐI VÍ METAMASK
-    const connectWallet = async () => {
-        if (typeof window.ethereum !== 'undefined') {
-            try {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                const address = accounts[0];
-                setUserWalletAddress(`${address.substring(0, 6)}...${address.substring(address.length - 4)}`);
-                setAuthEmail(address);
-            } catch (err) {
-                console.error("Lỗi kết nối ví:", err);
-            }
-        } else {
-            alert("Vui lòng cài đặt MetaMask!");
-        }
-    };
+      const connectWallet = async () => {
+    try {
+      if (typeof window !== "undefined" && window.ethereum) {
+        // Yêu cầu kết nối ví
+        const accounts = await window.ethereum.request({ 
+          method: 'eth_requestAccounts' 
+        });
+        setWalletAddress(accounts[0]); // Lấy địa chỉ ví đầu tiên
+        console.log("Đã kết nối ví:", accounts[0]);
+      } else {
+        alert("Không tìm thấy Metamask. Vui lòng cài đặt tiện ích này trên trình duyệt!");
+      }
+    } catch (error) {
+      console.error("Lỗi kết nối ví:", error.message);
+      alert("Người dùng đã từ chối kết nối hoặc có lỗi xảy ra.");
+    }
+  };
+
  
 
   // 1. LẤY TỶ GIÁ REALTIME (30 giây cập nhật một lần)
@@ -102,7 +106,7 @@ useEffect(() => {
     try {
       const { error } = await supabase.from('order').insert([
         { 
-          amount: nft.price_vnd, 
+          amount: nft.price, 
           buyer_address: walletAddress, 
           payment_content: newCode, 
           status: 'pending', 
@@ -168,15 +172,15 @@ useEffect(() => {
                 <div className="grid grid-cols-3 gap-2">
                   <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center">
                     <span className="block text-[8px] text-slate-500 font-bold uppercase mb-1">ETH</span>
-                    <span className="text-[10px] font-black text-orange-400">{(nft.price_vnd / rates.eth).toFixed(4)}</span>
+                    <span className="text-[10px] font-black text-orange-400">{(nft.price * rates.eth).toFixed(4)}</span>
                   </div>
                   <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center">
                     <span className="block text-[8px] text-slate-500 font-bold uppercase mb-1">USDT</span>
-                    <span className="text-[10px] font-black text-blue-400">{(nft.price_vnd / rates.usdt).toFixed(2)}</span>
+                    <span className="text-[10px] font-black text-blue-400">{(nft.price * rates.usdt).toFixed(2)}</span>
                   </div>
                   <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center">
                     <span className="block text-[8px] text-slate-500 font-bold uppercase mb-1">VND</span>
-                    <span className="text-[10px] font-black text-green-400">{(nft.price_vnd / rates.vnd).toFixed(2)}</span>
+                    <span className="text-[10px] font-black text-green-400">{(nft.price * rates.vnd).toFixed()}</span>
                   </div>
                 </div>
 
@@ -202,7 +206,7 @@ useEffect(() => {
                 
                 <div className="bg-slate-100 p-4 rounded-[2rem] mb-6 flex justify-center border-2 border-dashed border-slate-300 shadow-inner">
                   <img 
-                    src={`https://sepay.vn{selectedNft.price_vnd}&des=${orderCode}`} 
+                    src={`https://sepay.vn{selectednft.price}&des=${orderCode}`} 
                     className="w-64 h-64 mix-blend-multiply"
                     alt="VietQR"
                   />
@@ -210,7 +214,7 @@ useEffect(() => {
                 
                 <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-2">
                    <div className="flex justify-between items-center"><span className="text-[10px] text-slate-400 font-bold uppercase">Nội dung:</span><span className="font-mono font-black text-blue-600 text-lg">{orderCode}</span></div>
-                   <div className="flex justify-between items-center pt-2 border-t border-slate-200"><span className="text-[10px] text-slate-400 font-bold uppercase">Số tiền:</span><span className="font-black text-red-600 text-lg">{selectedNft.price_vnd.toLocaleString()} VND</span></div>
+                   <div className="flex justify-between items-center pt-2 border-t border-slate-200"><span className="text-[10px] text-slate-400 font-bold uppercase">Số tiền:</span><span className="font-black text-red-600 text-lg">{selectednft.price.toLocaleString()} VND</span></div>
                 </div>
 
                 <div className="mt-8 flex items-center justify-center gap-3">
