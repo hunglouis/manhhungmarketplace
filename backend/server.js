@@ -29,9 +29,15 @@ app.post("/webhook-payment", async (req, res) => {
     res.json({ success: true });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "fail" });
-  }
+  console.error("❌ ERROR:", err.message);
+  console.error(err);
+
+  res.status(500).json({
+    error: "fail",
+    message: err.message
+  });
+}
+
 });
 
 // 🎨 MINT

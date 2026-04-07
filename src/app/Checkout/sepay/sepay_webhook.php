@@ -1,68 +1,45 @@
 <?php
-require('db_connect.php');
 
-// 🔓 Cho phép gọi từ ngoài
-header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json");
 
-// Lấy dữ liệu webhook
-$data = json_decode(file_get_contents('php://input'));
+// 🔥 giả lập dữ liệu test
+$order_id = 123;
 
-if (!$data) {
-    echo json_encode(['success'=>false, 'message'=>'No data']);
-    exit;
-}
+// 🔗 URL backend Render
+$url = "https://manhhungmarketplace.onrender.com/webhook-payment";
 
-// Lấy thông tin
-$transaction_content = $data->content;
-$transfer_amount = $data->transferAmount;
-$transfer_type = $data->transferType;
+// 🔥 data gửi đi
+$data = [
+    "order_id" => $order_id
+];
 
-// Chỉ xử lý tiền vào
-if ($transfer_type !== "in") {
-    exit;
-}
+// 🚀 gọi API
+$ch = curl_init($url);
 
-// 🔍 Tách mã đơn hàng DH123
-preg_match('/DH(\d+)/', $transaction_content, $matches);
-$order_id = $matches[1] ?? null;
-
-if (!$order_id) {
-    echo json_encode(['success'=>false, 'message'=>'No order id']);
-    exit;
-}
-
-// 🔍 Kiểm tra đơn
-$result = $conn->query("SELECT * FROM tb_orders WHERE id={$order_id}");
-
-if (!$result || !$result->fetch_object()) {
-    echo json_encode(['success'=>false, 'message'=>'Order not found']);
-    exit;
-}
-
-// ✅ Update Paid
-$conn->query("UPDATE tb_orders SET payment_status='Paid' WHERE id='{$order_id}'");
-
-// 🔥 GỌI WEB3 SERVER
-$postData = json_encode([
-    "order_id" => $order_id,
-    "amount" => $transfer_amount
-]);
-
-$ch = curl_init(" https://unaddressed-yaretzi-nonneural.ngrok-free.dev/webhook-payment");
-
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
     'Content-Type: application/json'
 ]);
-curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
+// 🔥 thêm debug
 $response = curl_exec($ch);
+
+if ($response === false) {
+    echo json_encode([
+        "error" => curl_error($ch)
+    ]);
+    exit;
+}
+
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
 curl_close($ch);
 
+// 👉 in ra kết quả thật
 echo json_encode([
-    'success'=>true,
-    'order_id'=>$order_id,
-    'web3'=>$response
+    "status" => $httpCode,
+    "response" => json_decode($response, true),
+    "raw" => $response
 ]);
