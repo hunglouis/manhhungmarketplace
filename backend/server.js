@@ -5,6 +5,12 @@ const { ethers } = require("ethers");
 
 const app = express();
 
+console.log("===== ENV CHECK =====");
+console.log("CONTRACT_ADDRESS:", process.env.CONTRACT_ADDRESS);
+console.log("PRIVATE_KEY:", process.env.PRIVATE_KEY ? "OK" : "MISSING");
+console.log("RPC_URL:", process.env.RPC_URL ? "OK" : "MISSING");
+
+
 app.use(cors({
   origin: "*"
 }));
@@ -67,4 +73,6 @@ async function mintNFT(to, orderId) {
 
 app.listen(10000, () => {
   console.log("🚀 Server running");
+  console.log("CONTRACT_ADDRESS:", process.env.CONTRACT_ADDRESS);
+
 });

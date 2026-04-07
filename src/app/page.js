@@ -6,6 +6,12 @@ import axios from 'axios';
 // Hoặc nếu dùng script tag ở HTML thì thêm:
 // <script src="https://jsdelivr.net"></script>
 
+const contract = new ethers.Contract(
+  process.env.CONTRACT_ADDRESS,
+  JSON.parse(process.env.CONTRACT_ABI),
+  wallet
+);
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -44,6 +50,13 @@ export default function MusicNFTStudio() {
     console.error("Không lấy được giá ETH mới:", err);
   }
 };
+fetch("https://manhhungmarketplace.onrender.com/webhook-payment", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({ order_id: 123 })
+});
 
 // Tự động cập nhật mỗi 5 phút
 useEffect(() => {
