@@ -2,6 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { createClient } from '@supabase/supabase-js';
+import axios from 'axios'; 
+// Hoặc nếu dùng script tag ở HTML thì thêm:
+// <script src="https://jsdelivr.net"></script>
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
