@@ -4,31 +4,37 @@ const cors = require("cors");
 const { ethers } = require("ethers");
 
 const app = express();
-app.use(cors());
+
+app.use(cors({
+  origin: "*"
+}));
+
 app.use(express.json());
 
-console.log("🚀 Web3 Server running...");
+app.get("/", (req, res) => {
+  res.send("API RUNNING 🚀");
+});
 
-// 🔥 WEBHOOK TỪ PHP
+// 🔥 WEBHOOK
 app.post("/webhook-payment", async (req, res) => {
   try {
-    const { order_id, amount } = req.body;
+    const { order_id } = req.body;
 
-    console.log("💰 Payment received:", order_id);
+    console.log("💰 Payment:", order_id);
 
-    // 👉 TODO: lấy buyer_address từ DB
     const buyer = process.env.DEFAULT_BUYER;
 
     await mintNFT(buyer, order_id);
 
     res.json({ success: true });
+
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Mint failed" });
+    res.status(500).json({ error: "fail" });
   }
 });
 
-// 🎨 MINT NFT
+// 🎨 MINT
 async function mintNFT(to, orderId) {
   const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
 
@@ -43,16 +49,16 @@ async function mintNFT(to, orderId) {
     wallet
   );
 
-  console.log("🎨 Minting NFT...");
-
   const tx = await contract.mint(
     to,
     "ipfs://metadata/" + orderId
   );
 
-  console.log("⏳ Waiting tx:", tx.hash);
-
   await tx.wait();
 
-  console.log("🎉 SUCCESS:", tx.hash);
+  console.log("✅ Mint:", tx.hash);
 }
+
+app.listen(10000, () => {
+  console.log("🚀 Server running");
+});
