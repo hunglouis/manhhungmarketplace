@@ -72,6 +72,7 @@ async function mintNFT(to, orderId) {
 }
 
 app.listen(10000, () => {
+  console.log("===== ENV CHECK =====");
   console.log("🚀 Server running");
   console.log("CONTRACT_ADDRESS:", process.env.CONTRACT_ADDRESS);
   console.log("SERVICE CHECK:", process.env.RENDER_SERVICE_NAME);
