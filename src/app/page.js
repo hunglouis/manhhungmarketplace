@@ -222,14 +222,18 @@ useEffect(() => {
                 
                 <div className="bg-slate-100 p-4 rounded-[2rem] mb-6 flex justify-center border-2 border-dashed border-slate-300 shadow-inner">
                   <img 
-                    src={`https://sepay.vn{selectednft?.price}&des=${orderCode}`} 
+                    src={`https://sepay.vn{MY_BANK}&acc=${MY_ACCOUNT}&template=compact&amount=${selectednft(nft)?.nft.price* rates.vnd ||0}&des=${orderCode}`} 
                     className="w-64 h-64 mix-blend-multiply"
                     alt="VietQR"
                   />
                 </div>
-                
-                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-2">
-                   <div className="flex justify-between items-center"><span className="text-[10px] text-slate-400 font-bold uppercase">Nội dung:</span><span className="font-mono font-black text-blue-600 text-lg">{orderCode}</span></div>
+                               
+                <div className="flex justify-between items-center pt-2 border-t border-slate-200">
+				   <span className="text-[10px] text-slate-400 font-bold uppercase">Số tiền:</span>
+				   <span className="font-black text-red-600 text-lg">
+				   {(selectednft?.pricd_vnd || 0).toLocaleString()} VND
+				   </span>
+				 </div>
                    <div className="flex justify-between items-center pt-2 border-t border-slate-200"><span className="text-[10px] text-slate-400 font-bold uppercase">Số tiền:</span><span className="font-black text-red-600 text-lg">{selectednft?.price.toLocaleString()} VND</span></div>
                 </div>
 
