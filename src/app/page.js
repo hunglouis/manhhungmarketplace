@@ -6,14 +6,9 @@ import axios from 'axios';
 // Hoặc nếu dùng script tag ở HTML thì thêm:
 // <script src="https://jsdelivr.net"></script>
 
-const contract = new ethers.Contract(
-  process.env.CONTRACT_ADDRESS,
-  JSON.parse(process.env.CONTRACT_ABI),
-  wallet
-);
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = "https://hmvvjjiiaelcsfqgxbxv.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtdnZqamlpYWVsY3NmcWd4Ynh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzNDg4MzcsImV4cCI6MjA4OTkyNDgzN30.zCpflfgSmBwpwe62P7cr1Ppf5dMUMjh782EhZeZ-kuw";
 const supabase = createClient(supabaseUrl, supabaseKey);
  // Thông tin ngân hàng của bạn (Sửa tại đây)
 const MY_BANK = "BIDV"; 
@@ -231,10 +226,10 @@ useEffect(() => {
                 <div className="flex justify-between items-center pt-2 border-t border-slate-200">
 				   <span className="text-[10px] text-slate-400 font-bold uppercase">Số tiền:</span>
 				   <span className="font-black text-red-600 text-lg">
-				   {(selectednft?.pricd_vnd || 0).toLocaleString()} VND
+				   {(selectednft?.price * rates.vnd || 0).toLocaleString()} VND
 				   </span>
 				 </div>
-                   <div className="flex justify-between items-center pt-2 border-t border-slate-200"><span className="text-[10px] text-slate-400 font-bold uppercase">Số tiền:</span><span className="font-black text-red-600 text-lg">{selectednft?.price.toLocaleString()} VND</span></div>
+                   <div className="flex justify-between items-center pt-2 border-t border-slate-200"><span className="text-[10px] text-slate-400 font-bold uppercase">Số tiền:</span><span className="font-black text-red-600 text-lg">{(selectednft?.price * rates.vnd || 0).toLocaleString()} VND</span></div>
                 </div>
 
                 <div className="mt-8 flex items-center justify-center gap-3">
@@ -242,7 +237,7 @@ useEffect(() => {
                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic text-center">Hệ thống đang chờ xử lý...</p>
                 </div>
              </div>
-          </div>
+         
         )}
 
         <footer className="mt-20 text-center py-10 border-t border-slate-900">
