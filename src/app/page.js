@@ -1,4 +1,6 @@
 "use client";
+import AudioPlayer from 'react-h5-audio-player';
+import 'react-h5-audio-player/lib/styles.css';
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { createClient } from '@supabase/supabase-js';
@@ -16,6 +18,8 @@ const MY_ACCOUNT = "3120464627";
 
 
 export default function MusicNFTStudio() {
+  const [isLocked, setIsLocked] = useState(false);
+  const [currentTrack, setCurrentTrack] = useState(null);
   const [amount, setAmount] = useState(""); 
   const [walletAddress, setWalletAddress] = useState("");
   const [orderId, setOrderId] = useState("");
@@ -25,19 +29,47 @@ export default function MusicNFTStudio() {
   const [selectednft, setselectednft] = useState(null);
   const [orderCode, setOrderCode] = useState("");
   const [playingId, setPlayingId] = useState(null);
-    const [ethPriceUSD, setEthPriceUSD] = useState(2065); // Giá mặc định nếu API lỗi
+  const [ethPriceUSD, setEthPriceUSD] = useState(2065); // Giá mặc định nếu API lỗi
 	const [order, setOrder] = useState(null);
-    const [authEmail, setAuthEmail] = useState('');
-    const [showQRModal, setShowQRModal] = useState(false);
-    const [activeQRUrl, setActiveQRUrl] = useState('');
-    const [userWalletAddress, setUserWalletAddress] = useState('');
-
+  const [authEmail, setAuthEmail] = useState('');
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [activeQRUrl, setActiveQRUrl] = useState('');
+  const [userWalletAddress, setUserWalletAddress] = useState('');
+   
     useEffect(() => {
-        fetchNFTs();
+    // 1. Lấy tỉ giá từ Server nhà mình
+const fetchRates = async () => {
+  try {
+    const res = await fetch('http://localhost:3002/api/rates');
+    const data = await res.json();
+    setRates(data);
+  } catch (err) {
+    console.log("Dùng Server dự phòng");
+  }
+};
+
+// 2. Gửi dữ liệu về Server khi người dùng nhấn Play
+const handleMusicPlay = async (track) => {
+  // Gửi nhật ký về server
+  fetch('http://localhost:3002/api/log-heritage', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      trackName: track.name,
+      walletAddress: userWallet || "Guest",
+      timestamp: new Date().toLocaleString()
+    })
+  });
+
+  // Chạy logic 45 giây như cũ
+  startHeritageProtection();
+};
+    
+		fetchNFTs();
     }, []);
 	const fetchETHPrice = async () => {
   try {
-    const res = await axios.get('https://coingecko.com');
+    const res = await axios.get('http://localhost:3002/api/eth-price');
     const price = res.data.ethereum.usd;
     setEthPriceUSD(price);
     console.log("🚀 Giá ETH mới nhất:", price, "USD");
@@ -45,13 +77,11 @@ export default function MusicNFTStudio() {
     console.error("Không lấy được giá ETH mới:", err);
   }
 };
-fetch("https://manhhungmarketplace.onrender.com/webhook-payment", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({ order_id: 123 })
-});
+//fetch("https://manhhungmarketplace.onrender.com/webhook-payment", {
+  //method: "POST",
+  //headers: {
+//    "Content-Type": "application/json"  },
+  //body: JSON.stringify({ order_id: 123 })});
 
 // Tự động cập nhật mỗi 5 phút
 useEffect(() => {
@@ -84,14 +114,13 @@ useEffect(() => {
   };
 
  
-
   // 1. LẤY TỶ GIÁ REALTIME (30 giây cập nhật một lần)
   useEffect(() => {
     const fetchRates = async () => {
       try {
-        const res = await fetch('https://coingecko.com');
+        const res = await fetch('http://localhost:3002/api/rates');
         const data = await res.json();
-        setRates({ eth: data.ethereum.vnd, usdt: data.tether.vnd });
+        setRates({ eth: data.eth, usdt: data.usdt, vnd: data.vnd });
       } catch (err) { console.error("Lỗi cập nhật tỷ giá:", err); }
     };
     fetchRates();
@@ -159,10 +188,10 @@ useEffect(() => {
               {/* MEDIA VIEW: CLICK TO PLAY */}
               <div 
                 className="relative h-72 cursor-pointer overflow-hidden bg-black"
-                onClick={() => setPlayingId(playingId === nft.id ? null : nft.id)}
-              >
+                onClick={() => setCurrentTrack(nft)}>
+                
                 {playingId === nft.id ? (
-                  <video src={nft.media_url} autoPlay controls className="w-full h-full object-contain bg-black" />
+                  <video src={nft.media_url?.replace("gateway.pinata.cloud", "cloudflare-ipfs.com")} autoPlay controls className="w-full h-full object-contain bg-black" />
                 ) : (
                   <>
                     <img src={nft.image_url} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500 group-hover:scale-105" alt={nft.name} />
@@ -174,6 +203,29 @@ useEffect(() => {
                   </>
                 )}
               </div>
+<AudioPlayer
+  autoPlay
+  src={currentTrack?.music_url?.replace("gateway.pinata.cloud", "cloudflare-ipfs.com")}
+  onPlay={() => {
+    // Gửi tín hiệu về Server 3002 để ghi file nhật ký
+    fetch('http://localhost:3002/api/log-heritage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        trackName: currentTrack?.name || "Tác phẩm Studio",
+        walletAddress: walletAddress || "Khách vãng lai",
+        timestamp: new Date().toLocaleString()
+      })
+    });
+  }}
+  onListen={(e) => {
+    if (e.target.currentTime >= 45) {
+      e.target.pause();
+      setIsLocked(true); // Hiện Popup hiệu triệu mua hàng
+    }
+  }}
+/>
+   
 
               {/* PRICING & BUY SECTION */}
               <div className="p-7 space-y-5">
@@ -244,6 +296,23 @@ useEffect(() => {
            <p className="text-[10px] text-slate-600 font-bold uppercase tracking-[10px]">Manh Hung Marketplace • 2026</p>
         </footer>
       </div>
+      {isLocked && (
+  <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-xl">
+    <div className="bg-[#121212] border border-cyan-500/30 p-10 rounded-[3rem] text-center max-w-sm shadow-[0_0_50px_rgba(0,255,255,0.2)]">
+      <div className="text-5xl mb-6 text-cyan-400">🔒</div>
+      <h2 className="text-cyan-400 font-black text-2xl mb-4 uppercase">Di sản được bảo vệ</h2>
+      <p className="text-gray-400 text-sm mb-8 italic px-4">
+        Hãy sở hữu di sản trực tiếp tại trang nhà HungLouis Music để nhận đặc quyền cao nhất.
+      </p>
+      <a href="http://localhost:8080/NFTMusicmarketplace/marketplace_supabase.php" 
+         className="inline-block w-full bg-cyan-500 text-black font-black py-4 rounded-full hover:scale-105 transition uppercase tracking-tighter">
+        💎 Mua tại HungLouis Music
+      </a>
+      <button onClick={() => setIsLocked(false)} className="mt-6 text-[10px] text-gray-600 uppercase tracking-widest hover:text-white">Để sau / Close</button>
+    </div>
+  </div>
+)}
+
     </div>
   );
 }

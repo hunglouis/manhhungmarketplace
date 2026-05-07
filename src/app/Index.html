@@ -1,3 +1,4 @@
+<?php
 import { useState } from "react";
 import axios from "axios";
 
@@ -27,11 +28,13 @@ export default function Home() {
     </div>
   );
 }
-
+?>
 
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+header("Access-Control-Allow-Origin: *");
+header("Content-Type: application/json");
     <meta charset="UTF-8">
     <title>My Polygon NFTs</title>
     <style>
