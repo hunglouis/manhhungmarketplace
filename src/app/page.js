@@ -8,7 +8,7 @@ import axios from 'axios';
 // Hoặc nếu dùng script tag ở HTML thì thêm:
 // <script src="https://jsdelivr.net"></script>
 
-
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const supabaseUrl = "https://hmvvjjiiaelcsfqgxbxv.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtdnZqamlpYWVsY3NmcWd4Ynh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzNDg4MzcsImV4cCI6MjA4OTkyNDgzN30.zCpflfgSmBwpwe62P7cr1Ppf5dMUMjh782EhZeZ-kuw";
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -18,8 +18,9 @@ const MY_ACCOUNT = "3120464627";
 
 
 export default function MusicNFTStudio() {
-  const [isLocked, setIsLocked] = useState(false);
   const [currentTrack, setCurrentTrack] = useState(null);
+  const [playingId, setPlayingId] = useState(null);
+  const [isLocked, setIsLocked] = useState(false);
   const [amount, setAmount] = useState(""); 
   const [walletAddress, setWalletAddress] = useState("");
   const [orderId, setOrderId] = useState("");
@@ -28,7 +29,6 @@ export default function MusicNFTStudio() {
   const [rates, setRates] = useState({ eth: 1, usdt: 2065 ,vnd: 60000000}); // Mặc định để tránh lỗi chia cho 0
   const [selectednft, setselectednft] = useState(null);
   const [orderCode, setOrderCode] = useState("");
-  const [playingId, setPlayingId] = useState(null);
   const [ethPriceUSD, setEthPriceUSD] = useState(2065); // Giá mặc định nếu API lỗi
 	const [order, setOrder] = useState(null);
   const [authEmail, setAuthEmail] = useState('');
@@ -137,6 +137,16 @@ useEffect(() => {
     fetchNfts();
   }, []);
 
+const fixIPFS = (url) => {
+  if (!url) return "";
+  if (url.startsWith("ipfs://")) {
+    return url.replace(
+      "ipfs://",
+      "https://Gateway.pinata.cloud/ipfs/"
+    );
+  }
+  return url;
+};
   
   // 4. HÀM XỬ LÝ MUA HÀNG (TẠO ĐƠN VÀO SUPABASE)
   const handleBuy = async (nft) => {
@@ -186,45 +196,73 @@ useEffect(() => {
             <div key={nft.id} className="bg-slate-900 rounded-[2.5rem] overflow-hidden border border-slate-800 shadow-2xl transition hover:border-blue-600 group">
               
               {/* MEDIA VIEW: CLICK TO PLAY */}
-              <div 
-                className="relative h-72 cursor-pointer overflow-hidden bg-black"
-                onClick={() => setCurrentTrack(nft)}>
-                
-                {playingId === nft.id ? (
-                  <video src={nft.media_url?.replace("gateway.pinata.cloud", "cloudflare-ipfs.com")} autoPlay controls className="w-full h-full object-contain bg-black" />
-                ) : (
-                  <>
-                    <img src={nft.image_url} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500 group-hover:scale-105" alt={nft.name} />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                       <div className="bg-white/10 backdrop-blur-md p-6 rounded-full border border-white/20 transform transition group-hover:scale-110 shadow-2xl">
-                          <span className="text-2xl">▶️</span>
-                       </div>
-                    </div>
-                  </>
-                )}
-              </div>
-<AudioPlayer
-  autoPlay
-  src={currentTrack?.music_url?.replace("gateway.pinata.cloud", "cloudflare-ipfs.com")}
-  onPlay={() => {
-    // Gửi tín hiệu về Server 3002 để ghi file nhật ký
-    fetch('http://localhost:3002/api/log-heritage', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        trackName: currentTrack?.name || "Tác phẩm Studio",
-        walletAddress: walletAddress || "Khách vãng lai",
-        timestamp: new Date().toLocaleString()
-      })
-    });
-  }}
-  onListen={(e) => {
-    if (e.target.currentTime >= 45) {
-      e.target.pause();
-      setIsLocked(true); // Hiện Popup hiệu triệu mua hàng
-    }
-  }}
-/>
+              <div
+                  className="group relative h-72 cursor-pointer overflow-hidden bg-black"
+                        onClick={() => {
+                          if (playingId !== nft.id) {
+                            setCurrentTrack(nft);
+                            setPlayingId(nft.id);
+                          }
+                        }}
+                      >
+                        {playingId === nft.id ? (
+
+                        nft.image_url?.includes(".mp3") ? (
+                            <audio
+                        controls
+                        autoPlay
+                        src={fixIPFS(nft.image_url)}
+                      />
+                          
+
+                        ) : (
+
+                          <video
+                            src={nft.image_url?.replace(
+                              "gateway.pinata.cloud",
+                              "Gateway.pinata.cloud"
+                            )}
+                            autoPlay
+                            controls
+                            playsInline
+                            preload="metadata"
+                            className="w-full h-full object-contain bg-black"
+                          />
+
+                        )
+
+                      ) : (
+                          <>
+                            <img
+                            src={nft.image_url || "/placeholder.jpg"}
+                            alt={nft.name}
+                            loading="lazy"
+                            className="w-full h-full object-cover opacity-70 
+                                      group-hover:opacity-100 
+                                      transition duration-500 
+                                      group-hover:scale-105"
+                          />
+
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div
+                                className="bg-white/10 backdrop-blur-md p-6 rounded-full
+                                          border border-white/20
+                                          transform transition
+                                          group-hover:scale-110 shadow-2xl"
+                              >
+                                <span className="text-2xl">▶️</span>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    {/* {currentTrack && (
+                    <audio
+                          src="fixIPFS(image_url)"
+                          controls />
+                     
+                    )} */}
+
    
 
               {/* PRICING & BUY SECTION */}
