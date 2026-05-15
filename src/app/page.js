@@ -30,7 +30,7 @@ export default function MusicNFTStudio() {
   const [selectednft, setselectednft] = useState(null);
   const [orderCode, setOrderCode] = useState("");
   const [ethPriceUSD, setEthPriceUSD] = useState(2065); // Giá mặc định nếu API lỗi
-	const [order, setOrder] = useState(null);
+  const [order, setOrder] = useState(null);
   const [authEmail, setAuthEmail] = useState('');
   const [showQRModal, setShowQRModal] = useState(false);
   const [activeQRUrl, setActiveQRUrl] = useState('');
