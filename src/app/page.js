@@ -4,7 +4,7 @@ import 'react-h5-audio-player/lib/styles.css';
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { createClient } from '@supabase/supabase-js';
-import axios from 'axios'; 
+import axios from 'axios';
 // Hoặc nếu dùng script tag ở HTML thì thêm:
 // <script src="https://jsdelivr.net"></script>
 
@@ -12,8 +12,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const supabaseUrl = "https://hmvvjjiiaelcsfqgxbxv.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtdnZqamlpYWVsY3NmcWd4Ynh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzNDg4MzcsImV4cCI6MjA4OTkyNDgzN30.zCpflfgSmBwpwe62P7cr1Ppf5dMUMjh782EhZeZ-kuw";
 const supabase = createClient(supabaseUrl, supabaseKey);
- // Thông tin ngân hàng của bạn (Sửa tại đây)
-const MY_BANK = "BIDV"; 
+// Thông tin ngân hàng của bạn (Sửa tại đây)
+const MY_BANK = "BIDV";
 const MY_ACCOUNT = "3120464627";
 
 
@@ -21,12 +21,12 @@ export default function MusicNFTStudio() {
   const [currentTrack, setCurrentTrack] = useState(null);
   const [playingId, setPlayingId] = useState(null);
   const [isLocked, setIsLocked] = useState(false);
-  const [amount, setAmount] = useState(""); 
+  const [amount, setAmount] = useState("");
   const [walletAddress, setWalletAddress] = useState("");
   const [orderId, setOrderId] = useState("");
   const [isPending, setIsPending] = useState(false);
   const [nfts, setNfts] = useState([]);
-  const [rates, setRates] = useState({ eth: 1, usdt: 2065 ,vnd: 60000000}); // Mặc định để tránh lỗi chia cho 0
+  const [rates, setRates] = useState({ eth: 1, usdt: 2065, vnd: 60000000 }); // Mặc định để tránh lỗi chia cho 0
   const [selectednft, setselectednft] = useState(null);
   const [orderCode, setOrderCode] = useState("");
   const [ethPriceUSD, setEthPriceUSD] = useState(2065); // Giá mặc định nếu API lỗi
@@ -35,7 +35,7 @@ export default function MusicNFTStudio() {
   const [showQRModal, setShowQRModal] = useState(false);
   const [activeQRUrl, setActiveQRUrl] = useState('');
   const [userWalletAddress, setUserWalletAddress] = useState('');
- {/* ĐOẠN Ổ KHÓA (DÁN ĐÈ LÊN GIỮA HAI DÒNG CHỮ NÀY) */}
+  {/* ĐOẠN Ổ KHÓA (DÁN ĐÈ LÊN GIỮA HAI DÒNG CHỮ NÀY) */ }
   // -------------------------------------------------------------
   // TẦNG 1: KHAI BÁO TẤT CẢ CÁC STATE (Tương tác trạng thái)
   // -------------------------------------------------------------
@@ -46,7 +46,7 @@ export default function MusicNFTStudio() {
   // -------------------------------------------------------------
   // TẦNG 2: ĐẶT TẤT CẢ CÁC HÀM USEEFFECT (Kể cả hàm cũ bị lỗi dòng 57)
   // -------------------------------------------------------------
-  
+
   // 1. Hàm kiểm tra ví Web3 Auth (Chúng ta vừa viết)
   useEffect(() => {
     async function checkWallet() {
@@ -76,25 +76,25 @@ export default function MusicNFTStudio() {
       return () => { if (window.ethereum && window.ethereum.removeListener) window.ethereum.removeListener('accountsChanged', handleAccounts); };
     }
   }, []);
- useEffect(() => {
+  useEffect(() => {
     // 1. Lấy tỉ giá từ Server nhà mình
-const fetchRates = async () => {
-  try {
-    const res = await fetch('http://localhost:3002/api/rates');
-    const data = await res.json();
-    setRates(data);
-  } catch (err) {
-    console.log("Dùng Server dự phòng");
-  }
-};
-}, []);
-// Tự động cập nhật mỗi 5 phút
-useEffect(() => {
-  fetchETHPrice();
-  const interval = setInterval(fetchETHPrice, 300000); 
-  return () => clearInterval(interval);
-}, []);
- // 1. LẤY TỶ GIÁ REALTIME (30 giây cập nhật một lần)
+    const fetchRates = async () => {
+      try {
+        const res = await fetch('http://localhost:3002/api/rates');
+        const data = await res.json();
+        setRates(data);
+      } catch (err) {
+        console.log("Dùng Server dự phòng");
+      }
+    };
+  }, []);
+  // Tự động cập nhật mỗi 5 phút
+  useEffect(() => {
+    fetchETHPrice();
+    const interval = setInterval(fetchETHPrice, 300000);
+    return () => clearInterval(interval);
+  }, []);
+  // 1. LẤY TỶ GIÁ REALTIME (30 giây cập nhật một lần)
   useEffect(() => {
     const fetchRates = async () => {
       try {
@@ -107,10 +107,10 @@ useEffect(() => {
     const interval = setInterval(fetchRates, 30000);
     return () => clearInterval(interval);
   }, []);
- // 2. LẤY DANH SÁCH NFT TỪ SUPABASE
+  // 2. LẤY DANH SÁCH NFT TỪ SUPABASE
   useEffect(() => {
     const fetchNfts = async () => {
-      const { data, error } = await supabase.from('items').select('*');
+      const { data, error } = await supabase.from('items').select('*').eq("is_hidden", false);
       if (data) setNfts(data);
     };
     fetchNfts();
@@ -125,63 +125,63 @@ useEffect(() => {
   // -------------------------------------------------------------
   // TẦNG 3: CÁC HÀM XỬ LÝ SỰ KIỆN (FUNCTIONS)
   // -------------------------------------------------------------
-  
-// 2. Gửi dữ liệu về Server khi người dùng nhấn Play
-const handleMusicPlay = async (track) => {
-  // Gửi nhật ký về server
-  fetch('http://localhost:3002/api/log-heritage', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      trackName: track.name,
-      walletAddress: userWallet || "Guest",
-      timestamp: new Date().toLocaleString()
-    })
-  });
 
-  // Chạy logic 45 giây như cũ
-  startHeritageProtection();
-};    
-		
-	const fetchETHPrice = async () => {
-  try {
-    const res = await axios.get('http://localhost:3002/api/eth-price');
-    const price = res.data.ethereum.usd;
-    setEthPriceUSD(price);
-    console.log("🚀 Giá ETH mới nhất:", price, "USD");
-  } catch (err) {
-    console.error("Không lấy được giá ETH mới:", err);
-  }
-};
-//fetch("https://manhhungmarketplace.onrender.com/webhook-payment", {
+  // 2. Gửi dữ liệu về Server khi người dùng nhấn Play
+  const handleMusicPlay = async (track) => {
+    // Gửi nhật ký về server
+    fetch('http://localhost:3002/api/log-heritage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        trackName: track.name,
+        walletAddress: userWallet || "Guest",
+        timestamp: new Date().toLocaleString()
+      })
+    });
+
+    // Chạy logic 45 giây như cũ
+    startHeritageProtection();
+  };
+
+  const fetchETHPrice = async () => {
+    try {
+      const res = await axios.get('http://localhost:3002/api/eth-price');
+      const price = res.data.ethereum.usd;
+      setEthPriceUSD(price);
+      console.log("🚀 Giá ETH mới nhất:", price, "USD");
+    } catch (err) {
+      console.error("Không lấy được giá ETH mới:", err);
+    }
+  };
+  //fetch("https://manhhungmarketplace.onrender.com/webhook-payment", {
   //method: "POST",
   //headers: {
-//    "Content-Type": "application/json"  },
+  //    "Content-Type": "application/json"  },
   //body: JSON.stringify({ order_id: 123 })});
 
 
 
-    const fetchNFTs = async () => {
-        const { data } = await supabase.from('items').select('*').order('created_at', { ascending: false });
-        setNfts(data || []);
-    };
- // 3. KẾT NỐI VÍ METAMASK
-        async function connectWallet() {
+  const fetchNFTs = async () => {
+    const { data } = await supabase.from('items').select('*').eq("is_hidden", false).order('created_at', { ascending: false });
+    setNfts(data || []);
+  };
+  // 3. KẾT NỐI VÍ METAMASK
+  async function connectWallet() {
     // LỚP BẺ KHÓA: Cưỡng ép trình duyệt quét tìm cửa sổ MetaMask toàn cục
     if (typeof window !== 'undefined') {
       const provider = window.ethereum || (window.ethereumProviders && window.ethereumProviders.find(p => p.isMetaMask));
-      
+
       if (provider) {
         try {
           console.log("-> Đang cưỡng ép MetaMask hiển thị bảng chọn tài khoản...");
-          
+
           // Sử dụng hàm eth_requestAccounts đời đầu để ép ví phải nhảy lên màn hình
           const accounts = await provider.request({ method: 'eth_requestAccounts' });
-          
+
           if (accounts && accounts.length > 0) {
             setWalletAddress(accounts[0].toLowerCase().trim());
             setIsConnected(true);
-            
+
             // Ép nạp lại trang để đồng bộ dữ liệu ví SALEBOT vào kho nhạc
             window.location.reload();
           }
@@ -199,30 +199,30 @@ const handleMusicPlay = async (track) => {
   }
 
 
-const fixIPFS = (url) => {
-  if (!url) return "";
-  if (url.startsWith("ipfs://")) {
-    return url.replace(
-      "ipfs://",
-      "https://Gateway.pinata.cloud/ipfs/"
-    );
-  }
-  return url;
-};
-  
+  const fixIPFS = (url) => {
+    if (!url) return "";
+    if (url.startsWith("ipfs://")) {
+      return url.replace(
+        "ipfs://",
+        "https://Gateway.pinata.cloud/ipfs/"
+      );
+    }
+    return url;
+  };
+
   // 4. HÀM XỬ LÝ MUA HÀNG (TẠO ĐƠN VÀO SUPABASE)
   const handleBuy = async (nft) => {
     if (!walletAddress) return alert("Vui lòng kết nối ví trước!");
-    
+
     const newCode = "MH" + Math.floor(Math.random() * 1000000);
     try {
       const { error } = await supabase.from('order').insert([
-        { 
-          amount: nft.price, 
-          buyer_address: walletAddress, 
-          payment_content: newCode, 
-          status: 'pending', 
-          nft_id: nft.id 
+        {
+          amount: nft.price,
+          buyer_address: walletAddress,
+          payment_content: newCode,
+          status: 'pending',
+          nft_id: nft.id
         }
       ]);
       if (error) throw error;
@@ -234,14 +234,14 @@ const fixIPFS = (url) => {
   // -------------------------------------------------------------
   // TẦNG 4: BẬT ĐẬP CHẶN VÍ BẢO MẬT (Đặt dưới tất cả Hooks)
   // -------------------------------------------------------------
-     
+
 
 
   // -------------------------------------------------------------
   // TẦNG 5: GIAO DIỆN HIỂN THỊ THẬT KHI ĐÃ CÓ VÍ
   // -------------------------------------------------------------
 
-    // ⬇️ DÁN CHÍNH XÁC KHỐI LUỒNG ĐIỀU KHIỂN NÀY NGAY PHÍA TRÊN LỆNH RETURN ( ... ) ⬇️
+  // ⬇️ DÁN CHÍNH XÁC KHỐI LUỒNG ĐIỀU KHIỂN NÀY NGAY PHÍA TRÊN LỆNH RETURN ( ... ) ⬇️
   let currentAudio = null;
   let currentCard = null;
   let previewTimeout = null;
@@ -268,7 +268,7 @@ const fixIPFS = (url) => {
 
     // 3. TỰ ĐỘNG NHẬN DIỆN MV (VIDEO) HOẶC AUDIO THƯỜNG
     const videoPreview = cardElement.querySelector('.nft-video-preview');
-    
+
     if (videoPreview) {
       videoPreview.style.display = 'block'; // Hiện video đè lên poster
       videoPreview.currentTime = 0;
@@ -283,11 +283,11 @@ const fixIPFS = (url) => {
 
     // 4. BỘ ĐẾM THỜI GIAN NGẮT BẢN QUYỀN TÁC GIẢ (45 GIÂY)
     clearTimeout(previewTimeout);
-    
+
     // Nếu chưa kết nối ví (isConnected === false), chỉ cho nghe thử 45 giây
     if (!isConnected) {
       console.log("⚠️ Khách vãng lai chưa kết nối ví. Giới hạn 45 giây kích hoạt.");
-      
+
       previewTimeout = setTimeout(() => {
         if (currentCard === cardElement) {
           if (videoPreview) {
@@ -298,7 +298,7 @@ const fixIPFS = (url) => {
             currentAudio.pause();
           }
           if (playButton) playButton.innerHTML = '▶';
-          
+
           alert("🎵 Bạn đã nghe hết 45 giây thử nghiệm của tác phẩm. Vui lòng bấm nút 'Kết nối ví' ở góc trên để xác thực bản quyền và thưởng thức trọn vẹn ca khúc!");
           currentAudio = null;
           currentCard = null;
@@ -328,10 +328,10 @@ const fixIPFS = (url) => {
   }
 
   return (
-    
+
     <div className="min-h-screen bg-slate-950 text-slate-200 p-4 md:p-10 font-sans">
       <div className="max-w-7xl mx-auto">
-        
+
         {/* HEADER SECTION */}
         <header className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6 bg-slate-900/50 p-6 rounded-3xl border border-slate-800">
           <div>
@@ -343,7 +343,7 @@ const fixIPFS = (url) => {
           ) : (
             <div className="bg-slate-800 px-4 py-2 rounded-xl border border-blue-500/30">
               <span className="text-[10px] text-blue-400 block font-bold uppercase mb-1">Ví đã kết nối:</span>
-              <span className="font-mono text-xs text-white">{walletAddress.slice(0,6)}...{walletAddress.slice(-4)}</span>
+              <span className="font-mono text-xs text-white">{walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</span>
             </div>
           )}
         </header>
@@ -352,35 +352,35 @@ const fixIPFS = (url) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {nfts.map((nft) => (
             <div key={nft.id} className="bg-slate-900 rounded-[2.5rem] overflow-hidden border border-slate-800 shadow-2xl transition hover:border-blue-600 group">
-              
+
               {/* MEDIA VIEW: CLICK TO PLAY */}
               <div className="music-card"
-     data-audio={nft.image_url} // Lấy đúng cột chứa link file của bạn
-     onMouseEnter={(e) => playPreview(e.currentTarget)} onMouseLeave={(e) => stopPreview(e.currentTarget)}
->
-    {/* Các thẻ hiển thị ảnh, nút Play Overlay và tên bài hát của bạn giữ nguyên bên trong */}
-              <div className="group relative h-72 cursor-pointer overflow-hidden bg-black" onClick={() => { if (playingId !== nft.id) { setCurrentTrack(nft); setPlayingId(nft.id); } }} >
-                        {playingId === nft.id ? (
-                        nft.image_url?.includes(".mp3") ? (
-                            <audio controls autoPlay src={fixIPFS(nft.image_url)} />                      
-                        ) : (
-                          <video src={nft.image_url?.replace( "gateway.pinata.cloud", "Gateway.pinata.cloud" )} autoPlay controls playsInline preload="metadata" className="w-full h-full object-contain bg-black" />
-                        )
-                      ) : (
-                          <>
-                            <img src={nft.image_url || "/placeholder.jpg"} alt={nft.name} loading="lazy" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500 group-hover:scale-105" />
-                            <div className="absolute inset-0 flex items-center justify-center"> <div className="bg-white/10 backdrop-blur-md p-6 rounded-full border border-white/20 transform transition group-hover:scale-110 shadow-2xl" > <span className="text-2xl">▶️</span> </div> </div>
-                          </>
-                        )}
+                data-audio={nft.image_url} // Lấy đúng cột chứa link file của bạn
+                onMouseEnter={(e) => playPreview(e.currentTarget)} onMouseLeave={(e) => stopPreview(e.currentTarget)}
+              >
+                {/* Các thẻ hiển thị ảnh, nút Play Overlay và tên bài hát của bạn giữ nguyên bên trong */}
+                <div className="group relative h-72 cursor-pointer overflow-hidden bg-black" onClick={() => { if (playingId !== nft.id) { setCurrentTrack(nft); setPlayingId(nft.id); } }} >
+                  {playingId === nft.id ? (
+                    nft.image_url?.includes(".mp3") ? (
+                      <audio controls autoPlay src={fixIPFS(nft.image_url)} />
+                    ) : (
+                      <video src={nft.image_url?.replace("gateway.pinata.cloud", "Gateway.pinata.cloud")} autoPlay controls playsInline preload="metadata" className="w-full h-full object-contain bg-black" />
+                    )
+                  ) : (
+                    <>
+                      <img src={nft.image_url || "/placeholder.jpg"} alt={nft.name} loading="lazy" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500 group-hover:scale-105" />
+                      <div className="absolute inset-0 flex items-center justify-center"> <div className="bg-white/10 backdrop-blur-md p-6 rounded-full border border-white/20 transform transition group-hover:scale-110 shadow-2xl" > <span className="text-2xl">▶️</span> </div> </div>
+                    </>
+                  )}
+                </div>
+                {currentTrack && (<audio src="fixIPFS(image_url)" controls />)}
               </div>
-                     {currentTrack && ( <audio src="fixIPFS(image_url)" controls /> )} 
-</div>
-   
+
 
               {/* PRICING & BUY SECTION */}
               <div className="p-7 space-y-5">
                 <h3 className="text-xl font-black text-white">{nft.name}</h3>
-                
+
                 {/* REALTIME RATES */}
                 <div className="grid grid-cols-3 gap-2">
                   <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center">
@@ -397,7 +397,7 @@ const fixIPFS = (url) => {
                   </div>
                 </div>
 
-                <button 
+                <button
                   onClick={() => handleBuy(nft)}
                   className="w-full py-4 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-orange-950/20 transition-all active:scale-95"
                 >
@@ -411,64 +411,64 @@ const fixIPFS = (url) => {
         {/* --- MODAL THANH TOÁN QR --- */}
         {isPending && selectednft && (
           <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-300">
-             <div className="bg-white text-slate-900 p-8 rounded-[3rem] max-w-sm w-full relative shadow-[0_0_50px_rgba(59,130,246,0.3)] border-4 border-blue-500/20">
-                <button onClick={() => setIsPending(false)} className="absolute top-6 right-6 text-2xl font-bold text-slate-400 hover:text-red-500 transition">✕</button>
-                
-                <h2 className="text-center font-black text-xl mb-2 uppercase tracking-tighter">Thanh toán đơn hàng</h2>
-                <p className="text-center text-[10px] text-slate-400 font-bold uppercase mb-8 italic tracking-widest">Vui lòng quét mã qua App Ngân hàng</p>
-                
-                <div className="bg-slate-100 p-4 rounded-[2rem] mb-6 flex justify-center border-2 border-dashed border-slate-300 shadow-inner">
-                  <img 
-                    src={`https://sepay.vn{MY_BANK}&acc=${MY_ACCOUNT}&template=compact&amount=${selectednft(nft)?.nft.price* rates.vnd ||0}&des=${orderCode}`} 
-                    className="w-64 h-64 mix-blend-multiply"
-                    alt="VietQR"
-                  />
-                </div>
-                               
-                <div className="flex justify-between items-center pt-2 border-t border-slate-200">
-				   <span className="text-[10px] text-slate-400 font-bold uppercase">Số tiền:</span>
-				   <span className="font-black text-red-600 text-lg">
-				   {(selectednft?.price * rates.vnd || 0).toLocaleString()} VND
-				   </span>
-				 </div>
-                   <div className="flex justify-between items-center pt-2 border-t border-slate-200"><span className="text-[10px] text-slate-400 font-bold uppercase">Số tiền:</span><span className="font-black text-red-600 text-lg">{(selectednft?.price * rates.vnd || 0).toLocaleString()} VND</span></div>
-                </div>
+            <div className="bg-white text-slate-900 p-8 rounded-[3rem] max-w-sm w-full relative shadow-[0_0_50px_rgba(59,130,246,0.3)] border-4 border-blue-500/20">
+              <button onClick={() => setIsPending(false)} className="absolute top-6 right-6 text-2xl font-bold text-slate-400 hover:text-red-500 transition">✕</button>
 
-                <div className="mt-8 flex items-center justify-center gap-3">
-                   <div className="w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
-                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic text-center">Hệ thống đang chờ xử lý...</p>
-                </div>
-             </div>
-         
+              <h2 className="text-center font-black text-xl mb-2 uppercase tracking-tighter">Thanh toán đơn hàng</h2>
+              <p className="text-center text-[10px] text-slate-400 font-bold uppercase mb-8 italic tracking-widest">Vui lòng quét mã qua App Ngân hàng</p>
+
+              <div className="bg-slate-100 p-4 rounded-[2rem] mb-6 flex justify-center border-2 border-dashed border-slate-300 shadow-inner">
+                <img
+                  src={`https://sepay.vn{MY_BANK}&acc=${MY_ACCOUNT}&template=compact&amount=${selectednft(nft)?.nft.price * rates.vnd || 0}&des=${orderCode}`}
+                  className="w-64 h-64 mix-blend-multiply"
+                  alt="VietQR"
+                />
+              </div>
+
+              <div className="flex justify-between items-center pt-2 border-t border-slate-200">
+                <span className="text-[10px] text-slate-400 font-bold uppercase">Số tiền:</span>
+                <span className="font-black text-red-600 text-lg">
+                  {(selectednft?.price * rates.vnd || 0).toLocaleString()} VND
+                </span>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t border-slate-200"><span className="text-[10px] text-slate-400 font-bold uppercase">Số tiền:</span><span className="font-black text-red-600 text-lg">{(selectednft?.price * rates.vnd || 0).toLocaleString()} VND</span></div>
+            </div>
+
+            <div className="mt-8 flex items-center justify-center gap-3">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic text-center">Hệ thống đang chờ xử lý...</p>
+            </div>
+          </div>
+
         )}
 
         <footer className="mt-20 text-center py-10 border-t border-slate-900">
-           <p className="text-[10px] text-slate-600 font-bold uppercase tracking-[10px]">Manh Hung Marketplace • 2026</p>
+          <p className="text-[10px] text-slate-600 font-bold uppercase tracking-[10px]">Manh Hung Marketplace • 2026</p>
         </footer>
       </div>
       {isLocked && (
-  <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-xl">
-    <div className="bg-[#121212] border border-cyan-500/30 p-10 rounded-[3rem] text-center max-w-sm shadow-[0_0_50px_rgba(0,255,255,0.2)]">
-      <div className="text-5xl mb-6 text-cyan-400">🔒</div>
-      <h2 className="text-cyan-400 font-black text-2xl mb-4 uppercase">Di sản được bảo vệ</h2>
-      <p className="text-gray-400 text-sm mb-8 italic px-4">
-        Hãy sở hữu di sản trực tiếp tại trang nhà HungLouis Music để nhận đặc quyền cao nhất.
-      </p>
-      <a href="http://localhost:8080/NFTMusicmarketplace/marketplace_supabase.php" 
-         className="inline-block w-full bg-cyan-500 text-black font-black py-4 rounded-full hover:scale-105 transition uppercase tracking-tighter">
-        💎 Mua tại HungLouis Music
-      </a>
-      <button onClick={() => setIsLocked(false)} className="mt-6 text-[10px] text-gray-600 uppercase tracking-widest hover:text-white">Để sau / Close</button>
-    </div>
-  </div>
-  ) }
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-xl">
+          <div className="bg-[#121212] border border-cyan-500/30 p-10 rounded-[3rem] text-center max-w-sm shadow-[0_0_50px_rgba(0,255,255,0.2)]">
+            <div className="text-5xl mb-6 text-cyan-400">🔒</div>
+            <h2 className="text-cyan-400 font-black text-2xl mb-4 uppercase">Di sản được bảo vệ</h2>
+            <p className="text-gray-400 text-sm mb-8 italic px-4">
+              Hãy sở hữu di sản trực tiếp tại trang nhà HungLouis Music để nhận đặc quyền cao nhất.
+            </p>
+            <a href="http://localhost:8080/NFTMusicmarketplace/marketplace_supabase.php"
+              className="inline-block w-full bg-cyan-500 text-black font-black py-4 rounded-full hover:scale-105 transition uppercase tracking-tighter">
+              💎 Mua tại HungLouis Music
+            </a>
+            <button onClick={() => setIsLocked(false)} className="mt-6 text-[10px] text-gray-600 uppercase tracking-widest hover:text-white">Để sau / Close</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 
 
- {/* ĐOẠN Ổ KHÓA (DÁN ĐÈ LÊN GIỮA HAIDÒNG CHỮ NÀY) */}
+{/* ĐOẠN Ổ KHÓA (DÁN ĐÈ LÊN GIỮA HAIDÒNG CHỮ NÀY) */ }
 
 const styles = {
   container: { backgroundColor: '#050505', color: '#fff', minHeight: '100vh', padding: '120px 40px' },
@@ -509,7 +509,7 @@ const styles = {
   btnNavText: { background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '13px' },
   divider: { width: '1px', height: '15px', backgroundColor: '#333', margin: '0 15px' },
   btnConnect: { background: 'linear-gradient(90deg, #6366f1, #a855f7)', border: 'none', color: '#fff', padding: '8px 20px', borderRadius: '50px', fontWeight: 'bold', cursor: 'pointer' },
-  
+
   mintSection: { maxWidth: '600px', margin: '0 auto 60px' },
   card: { backgroundColor: '#111', padding: '30px', borderRadius: '24px', border: '1px solid #222' },
   input: { width: '100%', padding: '12px', backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '10px', color: '#fff' },
@@ -543,7 +543,7 @@ const styles = {
   modalContent: { backgroundColor: '#111', padding: '40px', borderRadius: '32px', width: '400px', textAlign: 'center', border: '1px solid #333' },
   modalInput: { width: '100%', padding: '15px', backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '12px', color: '#fff' },
   btnActionPrimary: { width: '100%', padding: '15px', background: 'linear-gradient(90deg, #6366f1, #a855f7)', border: 'none', borderRadius: '12px', color: '#fff', fontWeight: 'bold', marginTop: '20px', cursor: 'pointer' },
-  
+
   toastContainer: { position: 'fixed', bottom: '100px', right: '30px', backgroundColor: '#6366f1', padding: '15px 25px', borderRadius: '15px', zIndex: 5000 },
   toastMessage: { color: '#fff', fontWeight: 'bold' },
   btnChat: {
@@ -605,7 +605,7 @@ const styles = {
   nftStats: { display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#aaa', margin: '15px 0' },
   priceText: { color: '#6366f1', fontWeight: 'bold', fontSize: '15px' },
   btnZalo: { width: '100%', padding: '12px', backgroundColor: '#0068ff', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' },
-// Thêm vào styles
+  // Thêm vào styles
   fileInputCustom: {
     display: 'inline-block',
     padding: '10px 20px',
@@ -686,14 +686,14 @@ const styles = {
   qrDesc: { fontSize: '14px', color: '#aaa', marginBottom: '20px' },
   qrImageContainer: { backgroundColor: '#fff', padding: '15px', borderRadius: '15px', marginBottom: '20px' },
   qrImage: { width: '100%', height: 'auto', display: 'block' },
-  btnDone: { 
-    width: '100%', 
-    padding: '12px', 
-    backgroundColor: '#6366f1', 
-    color: '#fff', 
-    border: 'none', 
-    borderRadius: '12px', 
-    fontWeight: 'bold', 
+  btnDone: {
+    width: '100%',
+    padding: '12px',
+    backgroundColor: '#6366f1',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '12px',
+    fontWeight: 'bold',
     marginTop: '15px',
     cursor: 'pointer'
   },
