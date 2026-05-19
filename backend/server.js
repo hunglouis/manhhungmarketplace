@@ -1,5 +1,5 @@
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json");
+'header'("Access-Control-Allow-Origin: *");
+'header'("Content-Type: application/json");
 
 require("dotenv").config();
 const express = require("express");
@@ -12,8 +12,8 @@ const wallet = "0x8429BC345266D03a433b25B8Fb6301274294D81E";
 const url = "https://api.opensea.io/api/v2/chain/polygon/account/$wallet/nfts";
 
 const options = {
-  method: "GET",
-  header: {
+  'method': "GET",
+  'header': {
     'Accept': application / json,
     'X-API-KEY': b736ad1e23c74136b98079b71923bfcb
 
