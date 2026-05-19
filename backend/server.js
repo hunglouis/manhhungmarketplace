@@ -1,15 +1,16 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
 
 app.use(cors()); // Thay thế hoàn toàn cho dòng cấu hình cũ
 
 require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
 const { ethers } = require("ethers");
-
-const app = express();
 
 const wallet = "0x8429BC345266D03a433b25B8Fb6301274294D81E";
 const url = "https://api.opensea.io/api/v2/chain/polygon/account/$wallet/nfts";
