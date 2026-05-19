@@ -1,13 +1,14 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { ethers } from 'ethers';
-import ABI_CUA_BAN from './MyTokenNew.json';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-// Khởi tạo Supabase Admin (dùng Service Role Key để có quyền ghi)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+// Kiểm tra URL hợp lệ (bắt đầu bằng http hoặc https) trước khi khởi tạo
+const isValidUrl = supabaseUrl && (supabaseUrl.startsWith('http://') || supabaseUrl.startsWith('https://'));
+
+export const supabase = (isValidUrl && supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
+
+
 
 
 export async function POST(req) {
