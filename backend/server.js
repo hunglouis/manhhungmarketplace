@@ -18,8 +18,8 @@ const url = "https://api.opensea.io/api/v2/chain/polygon/account/$wallet/nfts";
 const options = {
   'method': "GET",
   'header': {
-    'Accept': application / json,
-    'X-API-KEY': b736ad1e23c74136b98079b71923bfcb
+    'Accept': 'application / json',
+    'X-API-KEY': 'b736ad1e23c74136b98079b71923bfcb'
 
   }
 };
