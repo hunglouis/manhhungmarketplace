@@ -8,37 +8,53 @@ const { ethers } = require("ethers");
 
 const app = express();
 
+const wallet = "0x8429BC345266D03a433b25B8Fb6301274294D81E";
+const url = "https://api.opensea.io/api/v2/chain/polygon/account/$wallet/nfts";
 
-$wallet = "0x8429BC345266D03a433b25B8Fb6301274294D81E";
+const options = {
+  method: "GET",
+  header: {
+    'Accept': application / json,
+    'X-API-KEY': b736ad1e23c74136b98079b71923bfcb
 
-$url = "https://api.opensea.io/api/v2/chain/polygon/account/$wallet/nfts";
+  }
+};
 
-$options = [
-    "http" => [
-        "method" => "GET",
-        "header" => [
-            "Accept: application/json",
-            "X-API-KEY:b736ad1e23c74136b98079b71923bfcb"
-        ]
-    ]
-];
+// Thay thế hoàn toàn cho dòng 23 và 24 của PHP
+fetch(url, options)
+  .then(res => res.json())
+  .then(data => {
+    console.log("Dữ liệu Opensea nhận được:", data);
+    // Bạn có thể xử lý biến 'data' này ở đây (ví dụ: res.json(data) để trả về client)
+  })
+  .catch(err => console.error("Lỗi khi gọi API Opensea:", err));
 
-$context = stream_context_create($options);
-echo file_get_contents($url, false, $context);
 
-// 1. LẤY TỶ GIÁ REALTIME (30 giây cập nhật một lần)
-  useEffect(() => {
-    const fetchRates = async () => {
-      try {
-        const res = await fetch('https://coingecko.com');
-        const data = await res.json();
-        setRates({ eth: data.ethereum.vnd, usdt: data.tether.vnd });
-      } catch (err) { console.error("Lỗi cập nhật tỷ giá:", err); }
+// 1. LẤY TỶ GIÁ REALTIME (30 giây cập nhật một lần ở Backend)
+// Khởi tạo một biến global để lưu tỷ giá dùng chung cho toàn bộ API backend
+let currentRates = { eth: 0, usdt: 0 };
+
+const fetchRates = async () => {
+  try {
+    // Sửa lại URL API chuẩn của CoinGecko để lấy giá VND (Link cũ https://coingecko.com của bạn chỉ trả về HTML trang chủ, sẽ bị lỗi .json())
+    const res = await fetch('https://coingecko.com');
+    const data = await res.json();
+
+    currentRates = {
+      eth: data.ethereum.vnd,
+      usdt: data.tether.vnd
     };
-    fetchRates();
-    const interval = setInterval(fetchRates, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    console.log("📊 Cập nhật tỷ giá thành công:", currentRates);
+  } catch (err) {
+    console.error("Lỗi cập nhật tỷ giá:", err);
+  }
+};
+
+// Chạy kích hoạt lần đầu tiên ngay khi khởi động server
+fetchRates();
+
+// Thiết lập tự động chạy lại sau mỗi 30 giây
+setInterval(fetchRates, 30000);
 
 console.log("===== ENV CHECK =====");
 console.log("CONTRACT_ADDRESS:", process.env.CONTRACT_ADDRESS);
@@ -70,14 +86,14 @@ app.post("/webhook-payment", async (req, res) => {
     res.json({ success: true });
 
   } catch (err) {
-  console.error("❌ ERROR:", err.message);
-  console.error(err);
+    console.error("❌ ERROR:", err.message);
+    console.error(err);
 
-  res.status(500).json({
-    error: "fail",
-    message: err.message
-  });
-}
+    res.status(500).json({
+      error: "fail",
+      message: err.message
+    });
+  }
 
 });
 
