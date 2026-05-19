@@ -31,7 +31,10 @@ export default function MusicNFTStudio() {
   const [orderCode, setOrderCode] = useState("");
   const [ethPriceUSD, setEthPriceUSD] = useState(2065); // Giá mặc định nếu API lỗi
   const [order, setOrder] = useState(null);
+  const [userAddress, setUserAddress] = useState('');
+  const [totalVisits, setTotalVisits] = useState(0);
   const [authEmail, setAuthEmail] = useState('');
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
   const [activeQRUrl, setActiveQRUrl] = useState('');
   const [userWalletAddress, setUserWalletAddress] = useState('');
@@ -231,6 +234,49 @@ export default function MusicNFTStudio() {
       setIsPending(true);
     } catch (err) { alert("Lỗi tạo đơn hàng: " + err.message); }
   };
+
+  // --- THANH TOÁN VIETQR BIDV ---
+  const handleVietQR = (nft) => {
+    // 1. TẠO LINK QR BIDV CHUẨN (KHÔNG LỖI ẢNH)
+    const amount = Math.round(parseFloat(nft.price || 0) * 25500);
+    const description = encodeURIComponent(`MUA NFT ${nft.name.toUpperCase()}`);
+
+    // Link ảnh QR BIDV chính xác cho số TK 3120464627
+    const qrUrl = `https://img.vietqr.io/image/BIDV-3120464627-compact2.png?amount=${amount}&addInfo=${description}&accountName=VU%20MANH%20HUNG`;
+
+    setActiveQRUrl(qrUrl);
+    setShowQRModal(true);
+
+    // 2. GỬI EMAIL THÔNG BÁO TỰ ĐỘNG ĐẾN HÙNG LOUIS
+    const templateParams = {
+      nft_name: nft.name,
+      price: nft.price,
+      customer: authEmail || "Khách vãng lai",
+      amount_vnd: amount.toLocaleString('vi-VN')
+    };
+
+    emailjs.send(
+      'service_1dhjp6a',
+      'template_fk98mhc',
+      templateParams,
+      'kQ7_6eXaohS_msZ-P'
+    ).then(() => {
+      console.log("📧 Đã gửi thư báo đơn hàng mới!");
+    }).catch((err) => {
+      console.error("Lỗi gửi email:", err);
+    });
+  };
+
+
+  const recordTransaction = async (nft) => {
+    await supabase.from('transactions').insert([{
+      nft_name: nft.name,
+      buyer: authEmail || "Khách vãng lai",
+      price: nft.price,
+      type: "Sale"
+    }]);
+    fetchTransactions();
+  };
   // -------------------------------------------------------------
   // TẦNG 4: BẬT ĐẬP CHẶN VÍ BẢO MẬT (Đặt dưới tất cả Hooks)
   // -------------------------------------------------------------
@@ -347,7 +393,20 @@ export default function MusicNFTStudio() {
             </div>
           )}
         </header>
+        {/* NAVBAR PHIÊN BẢN SANG TRỌNG */}
+        <nav style={styles.navbar}>
+          <div style={styles.navLogo}>HÙNG LOUIS <span style={{ color: '#6366f1' }}>STUDIO</span></div>
+          <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+            <div style={styles.visitBadge}>👁️ {totalVisits.toLocaleString()} lượt ghé thăm</div>
+            <button style={styles.btnNav} onClick={connectWallet}>
+              {userAddress ? `🦊 ${userAddress}` : (authEmail ? `👤 ${authEmail.substring(0, 8)}...` : '🔗 Kết nối Ví')}
+            </button>
 
+            <button style={styles.btnNav} onClick={() => setShowAuthModal(true)}>
+              {authEmail ? `👤 ${authEmail.substring(0, 8)}...` : '📧 Đăng nhập'}
+            </button>
+          </div>
+        </nav>
         {/* SHOWROOM SECTION */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {nfts.map((nft) => (
@@ -396,7 +455,14 @@ export default function MusicNFTStudio() {
                     <span className="text-[10px] font-black text-green-400">{(nft.price * rates.vnd).toFixed()}</span>
                   </div>
                 </div>
-
+                <div style={styles.cardFooter}>
+                  <span style={{ color: '#6366f1', fontWeight: 'bold' }}>{nft.price} ETH</span>
+                  {nft.is_listed ? (
+                    <button style={styles.btnBuy} onClick={() => handleVietQR(nft)}>🏦 Mua VNĐ</button>
+                  ) : (
+                    <button style={styles.btnOffer}>🤝 Đề nghị</button>
+                  )}
+                </div>
                 <button
                   onClick={() => handleBuy(nft)}
                   className="w-full py-4 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-orange-950/20 transition-all active:scale-95"
