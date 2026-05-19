@@ -1,5 +1,8 @@
-'header'("Access-Control-Allow-Origin: *");
-'header'("Content-Type: application/json");
+const express = require('express');
+const cors = require('cors');
+const app = express();
+
+app.use(cors()); // Thay thế hoàn toàn cho dòng cấu hình cũ
 
 require("dotenv").config();
 const express = require("express");
