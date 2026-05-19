@@ -5,6 +5,8 @@ import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
+import emailjs from '@emailjs/browser';
+
 // Hoặc nếu dùng script tag ở HTML thì thêm:
 // <script src="https://jsdelivr.net"></script>
 
@@ -260,9 +262,9 @@ export default function MusicNFTStudio() {
       'template_fk98mhc',
       templateParams,
       'kQ7_6eXaohS_msZ-P'
-    ).then(() => {
-      console.log("📧 Đã gửi thư báo đơn hàng mới!");
-    }).catch((err) => {
+    ).then(function (response) {
+      console.log("📧 Đã gửi thư báo đơn hàng mới!", response);
+    }).catch(function (err) {
       console.error("Lỗi gửi email:", err);
     });
   };
