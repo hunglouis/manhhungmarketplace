@@ -177,6 +177,7 @@ export default function MusicNFTStudio() {
       if (data) setNfts(data);
     };
     fetchNfts();
+	handleVisitorCount();
   }, []);
   // 2. HÀM USEEFFECT CŨ CỦA BẠN (DÒNG 57 CŨ) - BẮT BUỘC DI CHUYỂN LÊN ĐẶT TẠI ĐÂY
   useEffect(() => {
@@ -188,7 +189,14 @@ export default function MusicNFTStudio() {
   // -------------------------------------------------------------
   // TẦNG 3: CÁC HÀM XỬ LÝ SỰ KIỆN (FUNCTIONS)
   // -------------------------------------------------------------
-
+	const handleVisitorCount = async () => {
+    const { data, error } = await supabase.from('site_stats').select('views').eq('id', 1).single();
+    if (data && !error) {
+      const newCount = data.views + 1;
+      setTotalVisits(newCount);
+      await supabase.from('site_stats').update({ views: newCount }).eq('id', 1);
+    }
+  };
   // 2. Gửi dữ liệu về Server khi người dùng nhấn Play
   const handleMusicPlay = async (track) => {
     // Gửi nhật ký về server
@@ -605,6 +613,46 @@ export default function MusicNFTStudio() {
               </div>
             </div>
           )}
+		{/* POPUP VIETQR & LOGIN (TÁCH BIỆT) */}
+      {showQRModal && (
+        <div style={styles.modalOverlay} onClick={() => setShowQRModal(false)}>
+          <div style={styles.modalContentQR} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+              <h3 style={{ margin: 0 }}>Thanh toán BIDV</h3>
+              <button onClick={() => setShowQRModal(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '24px' }}>✕</button>
+            </div>
+            <img
+              src={activeQRUrl}
+              alt="Mã QR BIDV"
+              style={{
+                width: '100%',
+                height: 'auto',
+                borderRadius: '15px',
+                backgroundColor: '#fff', // Nền trắng giúp QR dễ quét hơn
+                padding: '15px',
+                display: 'block'
+              }}
+              onError={(e) => {
+                // Nếu vẫn lỗi, thử tải lại link đơn giản hơn
+                e.target.src = `https://vietqr.io`;
+              }}
+            />
+
+            <p style={{ fontSize: '12px', color: '#aaa', marginTop: '15px', textAlign: 'center' }}>Quét mã để sở hữu bản quyền NFT</p>
+            <button style={styles.btnActionPrimary} onClick={() => setShowQRModal(false)} style={{ marginTop: '15px' }}></button>
+          </div>
+        </div>
+      )}
+
+      {showAuthModal && (
+        <div style={styles.modalOverlay} onClick={() => setShowAuthModal(false)}>
+          <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
+            <h3>Đăng nhập Nghệ sĩ</h3>
+            <input style={styles.input} placeholder="Email của bạn" onChange={e => setAuthEmail(e.target.value)} />
+            <button style={styles.btnActionPrimary} onClick={() => setShowAuthModal(false)}>VÀO SÀN</button>
+          </div>
+        </div>
+      )}  
         </div>
       </div>
     </div>
