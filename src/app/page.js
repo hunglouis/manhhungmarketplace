@@ -1,11 +1,11 @@
 "use client";
 import AudioPlayer from 'react-h5-audio-player';
 import 'react-h5-audio-player/lib/styles.css';
-import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
 import emailjs from '@emailjs/browser';
+import { useEffect, useState } from 'react';
 
 // Hoặc nếu dùng script tag ở HTML thì thêm:
 // <script src="https://jsdelivr.net"></script>
@@ -40,13 +40,62 @@ export default function MusicNFTStudio() {
   const [showQRModal, setShowQRModal] = useState(false);
   const [activeQRUrl, setActiveQRUrl] = useState('');
   const [userWalletAddress, setUserWalletAddress] = useState('');
+  const [isConnected, setIsConnected] = useState(false);
   {/* ĐOẠN Ổ KHÓA (DÁN ĐÈ LÊN GIỮA HAI DÒNG CHỮ NÀY) */ }
   // -------------------------------------------------------------
   // TẦNG 1: KHAI BÁO TẤT CẢ CÁC STATE (Tương tác trạng thái)
   // -------------------------------------------------------------
-  const [isConnected, setIsConnected] = useState(false);
-  // ... các biến useState cũ của bạn (nếu có) phải đặt tại đây ...
 
+
+  useEffect(() => {
+
+    const ws =
+      new WebSocket(
+        'ws://localhost:3002'
+      );
+
+    ws.onopen = () => {
+
+      console.log(
+        'WebSocket connected'
+      );
+
+      setIsConnected(true);
+
+    };
+
+    ws.onmessage = (event) => {
+
+      const data =
+        JSON.parse(event.data);
+
+      if (data.rates) {
+
+        setRates(data.rates);
+
+      }
+
+    };
+
+    ws.onclose = () => {
+
+      console.log(
+        'WebSocket disconnected'
+      );
+
+      setIsConnected(false);
+
+    };
+
+    return () => {
+
+      ws.close();
+
+    };
+
+  }, []);
+
+  // ... các biến useState cũ của bạn (nếu có) phải đặt tại đây ...
 
   // -------------------------------------------------------------
   // TẦNG 2: ĐẶT TẤT CẢ CÁC HÀM USEEFFECT (Kể cả hàm cũ bị lỗi dòng 57)
@@ -83,9 +132,18 @@ export default function MusicNFTStudio() {
   }, []);
   useEffect(() => {
     // 1. Lấy tỉ giá từ Server nhà mình
+    const loadRates = async () => {
+
+      const res = await fetch('https://crypto-api-6qmy.onrender.com/api/rates');
+
+      const data = await res.json();
+
+      console.log(data);
+
+    };
     const fetchRates = async () => {
       try {
-        const res = await fetch('http://localhost:3002/api/rates');
+        const res = await fetch('https://crypto-api-6qmy.onrender.com/api/rates');
         const data = await res.json();
         setRates(data);
       } catch (err) {
@@ -103,7 +161,7 @@ export default function MusicNFTStudio() {
   useEffect(() => {
     const fetchRates = async () => {
       try {
-        const res = await fetch('http://localhost:3002/api/rates');
+        const res = await fetch('https://crypto-api-6qmy.onrender.com/api/rates/eth');
         const data = await res.json();
         setRates({ eth: data.eth, usdt: data.usdt, vnd: data.vnd });
       } catch (err) { console.error("Lỗi cập nhật tỷ giá:", err); }
@@ -150,7 +208,7 @@ export default function MusicNFTStudio() {
 
   const fetchETHPrice = async () => {
     try {
-      const res = await axios.get('http://localhost:3002/api/eth-price');
+      const res = await axios.get('https://crypto-api-6qmy.onrender.com/api/eth-price');
       const price = res.data.ethereum.usd;
       setEthPriceUSD(price);
       console.log("🚀 Giá ETH mới nhất:", price, "USD");
@@ -413,58 +471,47 @@ export default function MusicNFTStudio() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {nfts.map((nft) => (
             <div key={nft.id} className="bg-slate-900 rounded-[2.5rem] overflow-hidden border border-slate-800 shadow-2xl transition hover:border-blue-600 group">
-
               {/* MEDIA VIEW: CLICK TO PLAY */}
-              <div className="music-card"
-                data-audio={nft.image_url} // Lấy đúng cột chứa link file của bạn
-                onMouseEnter={(e) => playPreview(e.currentTarget)} onMouseLeave={(e) => stopPreview(e.currentTarget)}
-              >
-                {/* Các thẻ hiển thị ảnh, nút Play Overlay và tên bài hát của bạn giữ nguyên bên trong */}
-                <div className="group relative h-72 cursor-pointer overflow-hidden bg-black" onClick={() => { if (playingId !== nft.id) { setCurrentTrack(nft); setPlayingId(nft.id); } }} >
-                  {playingId === nft.id ? (
-                    nft.image_url?.includes(".mp3") ? (
-                      <audio controls autoPlay src={fixIPFS(nft.image_url)} />
-                    ) : (
-                      <video src={nft.image_url?.replace("gateway.pinata.cloud", "Gateway.pinata.cloud")} autoPlay controls playsInline preload="metadata" className="w-full h-full object-contain bg-black" />
-                    )
-                  ) : (
-                    <>
-                      <img src={nft.image_url || "/placeholder.jpg"} alt={nft.name} loading="lazy" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500 group-hover:scale-105" />
-                      <div className="absolute inset-0 flex items-center justify-center"> <div className="bg-white/10 backdrop-blur-md p-6 rounded-full border border-white/20 transform transition group-hover:scale-110 shadow-2xl" > <span className="text-2xl">▶️</span> </div> </div>
-                    </>
-                  )}
-                </div>
-                {currentTrack && (<audio src="fixIPFS(image_url)" controls />)}
+              <div
+                className="music-card group relative h-72 cursor-pointer overflow-hidden bg-black"
+                data-audio={nft.image_url}
+                onMouseEnter={(e) => playPreview(e.currentTarget)}
+                onMouseLeave={(e) => stopPreview(e.currentTarget)}
+                onClick={() => { if (playingId !== nft.id) { setCurrentTrack(nft); setPlayingId(nft.id); } }} >
+                {playingId === nft.id ? (
+                  nft.image_url?.includes(".mp3") ? (<audio controls autoPlay src={fixIPFS(nft.image_url)} className="w-full" />
+                  ) : (<video src={nft.image_url} autoPlay controls playsInline preload="metadata"
+                    className="w-full h-full object-contain bg-black" />)
+                ) : (
+                  <>
+                    <img src={nft.image_url || "/placeholder.jpg"} alt={nft.name} loading="lazy" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500 group-hover:scale-105" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="bg-white/10 backdrop-blur-md p-6 rounded-full border border-white/20 transform transition group-hover:scale-110 shadow-2xl" > <span className="text-2xl">▶️</span> </div>
+                    </div>
+                  </>
+                )}
               </div>
 
 
-              {/* PRICING & BUY SECTION */}
-              <div className="p-7 space-y-5">
-                <h3 className="text-xl font-black text-white">{nft.name}</h3>
+              {currentTrack && <audio src={fixIPFS(nft.image_url)} controls />}
 
+              < div className="p-7 space-y-5" >
+                <h3 className="text-xl font-black text-white">{nft.name}</h3>
                 {/* REALTIME RATES */}
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center">
-                    <span className="block text-[8px] text-slate-500 font-bold uppercase mb-1">ETH</span>
-                    <span className="text-[10px] font-black text-orange-400">{(nft.price * rates.eth).toFixed(4)}</span>
-                  </div>
-                  <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center">
-                    <span className="block text-[8px] text-slate-500 font-bold uppercase mb-1">USDT</span>
-                    <span className="text-[10px] font-black text-blue-400">{(nft.price * rates.usdt).toFixed(2)}</span>
-                  </div>
-                  <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center">
-                    <span className="block text-[8px] text-slate-500 font-bold uppercase mb-1">VND</span>
-                    <span className="text-[10px] font-black text-green-400">{(nft.price * rates.vnd).toFixed()}</span>
-                  </div>
+                < div className="grid grid-cols-3 gap-2" >
+                  {/* MATIC */}
+                  < div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center" > <span className="block text-[8px] text-slate-500 font-bold uppercase mb-1"> MATIC </span> <span className="text-[10px] font-black text-orange-400"> {(nft.price * 1 * 1).toFixed(4)} </span> </div>
+                  {/* USD */}
+                  <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center"> <span className="block text-[8px] text-slate-500 font-bold uppercase mb-1"> USD </span> <span className="text-[10px] font-black text-blue-400"> ${(nft.price * (rates?.MATIC || 0)).toFixed(2)} </span> </div>
+                  {/* VND */}
+                  <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center"> <span className="block text-[8px] text-slate-500 font-bold uppercase mb-1"> VND </span> <span className="text-[10px] font-black text-green-400"> {(nft.price * (rates?.MATIC || 0) * (rates?.VND || 0)).toLocaleString()} ₫ </span> </div>
                 </div>
+                {/* FOOTER */}
                 <div style={styles.cardFooter}>
-                  <span style={{ color: '#6366f1', fontWeight: 'bold' }}>{nft.price} ETH</span>
-                  {nft.is_listed ? (
-                    <button style={styles.btnBuy} onClick={() => handleVietQR(nft)}>🏦 Mua VNĐ</button>
-                  ) : (
-                    <button style={styles.btnOffer}>🤝 Đề nghị</button>
-                  )}
+                  <span style={{ color: '#6366f1', fontWeight: 'bold' }}>{nft.price} MATIC</span>
+                  {nft.is_listed ? (<button style={styles.btnBuy} onClick={() => handleVietQR(nft)}>🏦 Mua VNĐ</button>) : (<button style={styles.btnOffer}>🤝 Đề nghị</button>)}
                 </div>
+                {/* BUY BUTTON */}
                 <button
                   onClick={() => handleBuy(nft)}
                   className="w-full py-4 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-orange-950/20 transition-all active:scale-95"
@@ -473,67 +520,96 @@ export default function MusicNFTStudio() {
                 </button>
               </div>
             </div>
+
           ))}
-        </div>
 
-        {/* --- MODAL THANH TOÁN QR --- */}
-        {isPending && selectednft && (
-          <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-300">
-            <div className="bg-white text-slate-900 p-8 rounded-[3rem] max-w-sm w-full relative shadow-[0_0_50px_rgba(59,130,246,0.3)] border-4 border-blue-500/20">
-              <button onClick={() => setIsPending(false)} className="absolute top-6 right-6 text-2xl font-bold text-slate-400 hover:text-red-500 transition">✕</button>
+          {/* --- MODAL THANH TOÁN QR --- */}
 
-              <h2 className="text-center font-black text-xl mb-2 uppercase tracking-tighter">Thanh toán đơn hàng</h2>
-              <p className="text-center text-[10px] text-slate-400 font-bold uppercase mb-8 italic tracking-widest">Vui lòng quét mã qua App Ngân hàng</p>
+          {isPending && selectednft && (
 
-              <div className="bg-slate-100 p-4 rounded-[2rem] mb-6 flex justify-center border-2 border-dashed border-slate-300 shadow-inner">
-                <img
-                  src={`https://sepay.vn{MY_BANK}&acc=${MY_ACCOUNT}&template=compact&amount=${selectednft(nft)?.nft.price * rates.vnd || 0}&des=${orderCode}`}
-                  className="w-64 h-64 mix-blend-multiply"
-                  alt="VietQR"
-                />
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-xl">
+              <div className="bg-white text-slate-900 p-8 rounded-[3rem] max-w-sm w-full relative shadow-[0_0_50px_rgba(59,130,246,0.3)]">
+                <button
+                  onClick={() => setIsPending(false)}
+                  className="absolute top-6 right-6 text-2xl font-bold text-slate-400 hover:text-black"
+                >
+                  ✕
+                </button>
+                <h2 className="text-center font-black text-xl mb-2 uppercase tracking-tight">
+                  Thanh toán đơn hàng
+                </h2>
+                <p className="text-center text-[10px] text-slate-400 font-bold uppercase mb-8 italic tracking-widest">
+                  Vui lòng quét mã QR để thanh toán
+                </p>
+                {/* QR */}
+                <div className="bg-slate-100 p-4 rounded-[2rem] mb-6 flex justify-center border-2 border-dashed border-slate-300">
+                  <img
+                    src={`https://sepay.vn/img?acc=${MY_ACCOUNT}&template=compact&amount=${(selectednft?.price || 0) *
+                      (rates?.MATIC || 0) *
+                      (rates?.VND || 0)
+                      }`}
+                    className="w-64 h-64 mix-blend-multiply"
+                    alt="VietQR"
+                  />
+                </div>
+
+                {/* PRICE */}
+                <div className="flex justify-between items-center pt-2 border-t border-slate-200">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase"> Số tiền: </span>
+                  <span className="font-black text-red-600 text-lg"> {((selectednft?.price || 0) * (rates?.MATIC || 0) * (rates?.VND || 0)).toLocaleString()} ₫ </span>
+                </div>
+
+                {/* WAITING */}
+                <div className="mt-8 flex items-center justify-center gap-3">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic text-center">
+                    Hệ thống đang chờ thanh toán...
+                  </p>
+                </div>
               </div>
-
-              <div className="flex justify-between items-center pt-2 border-t border-slate-200">
-                <span className="text-[10px] text-slate-400 font-bold uppercase">Số tiền:</span>
-                <span className="font-black text-red-600 text-lg">
-                  {(selectednft?.price * rates.vnd || 0).toLocaleString()} VND
-                </span>
-              </div>
-              <div className="flex justify-between items-center pt-2 border-t border-slate-200"><span className="text-[10px] text-slate-400 font-bold uppercase">Số tiền:</span><span className="font-black text-red-600 text-lg">{(selectednft?.price * rates.vnd || 0).toLocaleString()} VND</span></div>
             </div>
+          )}
 
-            <div className="mt-8 flex items-center justify-center gap-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic text-center">Hệ thống đang chờ xử lý...</p>
-            </div>
-          </div>
-
-        )}
-
-        <footer className="mt-20 text-center py-10 border-t border-slate-900">
-          <p className="text-[10px] text-slate-600 font-bold uppercase tracking-[10px]">Manh Hung Marketplace • 2026</p>
-        </footer>
-      </div>
-      {isLocked && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-xl">
-          <div className="bg-[#121212] border border-cyan-500/30 p-10 rounded-[3rem] text-center max-w-sm shadow-[0_0_50px_rgba(0,255,255,0.2)]">
-            <div className="text-5xl mb-6 text-cyan-400">🔒</div>
-            <h2 className="text-cyan-400 font-black text-2xl mb-4 uppercase">Di sản được bảo vệ</h2>
-            <p className="text-gray-400 text-sm mb-8 italic px-4">
-              Hãy sở hữu di sản trực tiếp tại trang nhà HungLouis Music để nhận đặc quyền cao nhất.
+          <footer className="mt-20 text-center py-10 border-t border-slate-900">
+            <p className="text-[10px] text-slate-600 font-bold uppercase tracking-[10px]">
+              Manh Hung Marketplace • 2026
             </p>
-            <a href="http://localhost:8080/NFTMusicmarketplace/marketplace_supabase.php"
-              className="inline-block w-full bg-cyan-500 text-black font-black py-4 rounded-full hover:scale-105 transition uppercase tracking-tighter">
-              💎 Mua tại HungLouis Music
-            </a>
-            <button onClick={() => setIsLocked(false)} className="mt-6 text-[10px] text-gray-600 uppercase tracking-widest hover:text-white">Để sau / Close</button>
-          </div>
+          </footer>
+
+          {isLocked && (
+
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-xl">
+
+              <div className="bg-[#121212] border border-cyan-500/30 p-10 rounded-[3rem] text-center max-w-sm shadow-[0_0_50px_rgba(0,255,255,0.2)]">
+
+                <div className="text-5xl mb-6 text-cyan-400">
+                  🔒
+                </div>
+
+                <h2 className="text-cyan-400 font-black text-2xl mb-4 uppercase">
+                  Di sản được bảo vệ
+                </h2>
+
+                <p className="text-gray-400 text-sm mb-8 italic px-4"> Hãy sở hữu di sản trực tiếp tại trang nhà HungLouis Music để nhận đặc quyền cao nhất. </p>
+
+                <a
+                  href="http://localhost:8080/NFTMusicmarketplace/marketplace_supabase.php"
+                  className="inline-block w-full bg-cyan-500 text-black font-black py-4 rounded-full hover:scale-105 transition uppercase tracking-tighter"
+                >
+                  💎 Mua tại HungLouis Music
+                </a>
+
+                <button onClick={() => setIsLocked(false)} className="mt-6 text-[10px] text-gray-600 uppercase tracking-widest hover:text-white" >
+                  Để sau / Close
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
-};
-
+}
 
 
 {/* ĐOẠN Ổ KHÓA (DÁN ĐÈ LÊN GIỮA HAIDÒNG CHỮ NÀY) */ }
