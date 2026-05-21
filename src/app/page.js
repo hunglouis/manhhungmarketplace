@@ -17,7 +17,33 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 // Thông tin ngân hàng của bạn (Sửa tại đây)
 const MY_BANK = "BIDV";
 const MY_ACCOUNT = "3120464627";
+const API_BASE = 'https://crypto-api-6qmy.onrender.com';
 
+export const getEthPrice = async () => {
+  try {
+    const res = await fetch(`${API_BASE}/api/eth-price`);
+    const text = await res.text();
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${text}`);
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch (err) {
+      console.error('Không phải JSON:', text);
+      throw new Error('Server không trả JSON');
+    }
+  } catch (error) {
+    console.error('Lỗi lấy giá ETH:', error.message);
+    return null;
+  }
+};
+
+// Sử dụng:
+getEthPrice().then(data => {
+  if (data) console.log(data);
+});
 
 export default function MusicNFTStudio() {
   const [currentTrack, setCurrentTrack] = useState(null);
@@ -157,11 +183,12 @@ export default function MusicNFTStudio() {
     const interval = setInterval(fetchETHPrice, 300000);
     return () => clearInterval(interval);
   }, []);
+
   // 1. LẤY TỶ GIÁ REALTIME (30 giây cập nhật một lần)
   useEffect(() => {
     const fetchRates = async () => {
       try {
-        const res = await fetch('https://crypto-api-6qmy.onrender.com/api/rates/eth');
+        const res = await fetch('https://crypto-api-6qmy.onrender.com/api/rates');
         const data = await res.json();
         setRates({ eth: data.eth, usdt: data.usdt, vnd: data.vnd });
       } catch (err) { console.error("Lỗi cập nhật tỷ giá:", err); }
@@ -177,7 +204,7 @@ export default function MusicNFTStudio() {
       if (data) setNfts(data);
     };
     fetchNfts();
-	handleVisitorCount();
+    handleVisitorCount();
   }, []);
   // 2. HÀM USEEFFECT CŨ CỦA BẠN (DÒNG 57 CŨ) - BẮT BUỘC DI CHUYỂN LÊN ĐẶT TẠI ĐÂY
   useEffect(() => {
@@ -189,7 +216,7 @@ export default function MusicNFTStudio() {
   // -------------------------------------------------------------
   // TẦNG 3: CÁC HÀM XỬ LÝ SỰ KIỆN (FUNCTIONS)
   // -------------------------------------------------------------
-	const handleVisitorCount = async () => {
+  const handleVisitorCount = async () => {
     const { data, error } = await supabase.from('site_stats').select('views').eq('id', 1).single();
     if (data && !error) {
       const newCount = data.views + 1;
@@ -324,7 +351,7 @@ export default function MusicNFTStudio() {
     };
 
     emailjs.send(
-      'service_1dhjp6a',
+      'service_08wqhr4',
       'template_fk98mhc',
       templateParams,
       'kQ7_6eXaohS_msZ-P'
@@ -613,46 +640,46 @@ export default function MusicNFTStudio() {
               </div>
             </div>
           )}
-		{/* POPUP VIETQR & LOGIN (TÁCH BIỆT) */}
-      {showQRModal && (
-        <div style={styles.modalOverlay} onClick={() => setShowQRModal(false)}>
-          <div style={styles.modalContentQR} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-              <h3 style={{ margin: 0 }}>Thanh toán BIDV</h3>
-              <button onClick={() => setShowQRModal(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '24px' }}>✕</button>
+          {/* POPUP VIETQR & LOGIN (TÁCH BIỆT) */}
+          {showQRModal && (
+            <div style={styles.modalOverlay} onClick={() => setShowQRModal(false)}>
+              <div style={styles.modalContentQR} onClick={e => e.stopPropagation()}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+                  <h3 style={{ margin: 0 }}>Thanh toán BIDV</h3>
+                  <button onClick={() => setShowQRModal(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '24px' }}>✕</button>
+                </div>
+                <img
+                  src={activeQRUrl}
+                  alt="Mã QR BIDV"
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    borderRadius: '15px',
+                    backgroundColor: '#fff', // Nền trắng giúp QR dễ quét hơn
+                    padding: '15px',
+                    display: 'block'
+                  }}
+                  onError={(e) => {
+                    // Nếu vẫn lỗi, thử tải lại link đơn giản hơn
+                    e.target.src = `https://vietqr.io`;
+                  }}
+                />
+
+                <p style={{ fontSize: '12px', color: '#aaa', marginTop: '15px', textAlign: 'center' }}>Quét mã để sở hữu bản quyền NFT</p>
+                <button style={styles.btnActionPrimary} onClick={() => setShowQRModal(false)} style={{ marginTop: '15px' }}></button>
+              </div>
             </div>
-            <img
-              src={activeQRUrl}
-              alt="Mã QR BIDV"
-              style={{
-                width: '100%',
-                height: 'auto',
-                borderRadius: '15px',
-                backgroundColor: '#fff', // Nền trắng giúp QR dễ quét hơn
-                padding: '15px',
-                display: 'block'
-              }}
-              onError={(e) => {
-                // Nếu vẫn lỗi, thử tải lại link đơn giản hơn
-                e.target.src = `https://vietqr.io`;
-              }}
-            />
+          )}
 
-            <p style={{ fontSize: '12px', color: '#aaa', marginTop: '15px', textAlign: 'center' }}>Quét mã để sở hữu bản quyền NFT</p>
-            <button style={styles.btnActionPrimary} onClick={() => setShowQRModal(false)} style={{ marginTop: '15px' }}></button>
-          </div>
-        </div>
-      )}
-
-      {showAuthModal && (
-        <div style={styles.modalOverlay} onClick={() => setShowAuthModal(false)}>
-          <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
-            <h3>Đăng nhập Nghệ sĩ</h3>
-            <input style={styles.input} placeholder="Email của bạn" onChange={e => setAuthEmail(e.target.value)} />
-            <button style={styles.btnActionPrimary} onClick={() => setShowAuthModal(false)}>VÀO SÀN</button>
-          </div>
-        </div>
-      )}  
+          {showAuthModal && (
+            <div style={styles.modalOverlay} onClick={() => setShowAuthModal(false)}>
+              <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
+                <h3>Đăng nhập Nghệ sĩ</h3>
+                <input style={styles.input} placeholder="Email của bạn" onChange={e => setAuthEmail(e.target.value)} />
+                <button style={styles.btnActionPrimary} onClick={() => setShowAuthModal(false)}>VÀO SÀN</button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
