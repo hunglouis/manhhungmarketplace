@@ -333,7 +333,7 @@ export default function MusicNFTStudio() {
   // --- THANH TOÁN VIETQR BIDV ---
   const handleVietQR = (nft) => {
     // 1. TẠO LINK QR BIDV CHUẨN (KHÔNG LỖI ẢNH)
-    const amount = Math.round(parseFloat(nft.price || 0) * 25500);
+    const amount = Math.round(parseFloat(nft.price || 0) * 25500 * 2267);
     const description = encodeURIComponent(`MUA NFT ${nft.name.toUpperCase()}`);
 
     // Link ảnh QR BIDV chính xác cho số TK 3120464627
@@ -535,15 +535,15 @@ export default function MusicNFTStudio() {
                 {/* REALTIME RATES */}
                 < div className="grid grid-cols-3 gap-2" >
                   {/* MATIC */}
-                  < div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center" > <span className="block text-[8px] text-slate-500 font-bold uppercase mb-1"> MATIC </span> <span className="text-[10px] font-black text-orange-400"> {(nft.price * 1 * 1).toFixed(4)} </span> </div>
+                  < div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center" > <span className="block text-[8px] text-slate-500 font-bold uppercase mb-1"> ETH </span> <span className="text-[10px] font-black text-orange-400"> {(nft.price * 1 * 1).toFixed(4)} </span> </div>
                   {/* USD */}
-                  <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center"> <span className="block text-[8px] text-slate-500 font-bold uppercase mb-1"> USD </span> <span className="text-[10px] font-black text-blue-400"> ${(nft.price * (rates?.MATIC || 0)).toFixed(2)} </span> </div>
+                  <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center"> <span className="block text-[8px] text-slate-500 font-bold uppercase mb-1"> USD </span> <span className="text-[10px] font-black text-blue-400"> ${(nft.price * (rates?.ETH || 0)).toFixed(2)} </span> </div>
                   {/* VND */}
-                  <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center"> <span className="block text-[8px] text-slate-500 font-bold uppercase mb-1"> VND </span> <span className="text-[10px] font-black text-green-400"> {(nft.price * (rates?.MATIC || 0) * (rates?.VND || 0)).toLocaleString()} ₫ </span> </div>
+                  <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center"> <span className="block text-[8px] text-slate-500 font-bold uppercase mb-1"> VND </span> <span className="text-[10px] font-black text-green-400"> {(nft.price * (rates?.ETH || 0) * (rates?.VND || 0)).toLocaleString()} ₫ </span> </div>
                 </div>
                 {/* FOOTER */}
                 <div style={styles.cardFooter}>
-                  <span style={{ color: '#6366f1', fontWeight: 'bold' }}>{nft.price} MATIC</span>
+                  <span style={{ color: '#6366f1', fontWeight: 'bold' }}>{nft.price} ETH </span>
                   {nft.is_listed ? (<button style={styles.btnBuy} onClick={() => handleVietQR(nft)}>🏦 Mua VNĐ</button>) : (<button style={styles.btnOffer}>🤝 Đề nghị</button>)}
                 </div>
                 {/* BUY BUTTON */}
