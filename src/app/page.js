@@ -2,7 +2,7 @@
 import AudioPlayer from 'react-h5-audio-player';
 import 'react-h5-audio-player/lib/styles.css';
 import { ethers } from 'ethers';
-import { createClient } from '@supabase/supabase-client'
+import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
 import emailjs from '@emailjs/browser';
 import { useEffect, useState } from 'react';
