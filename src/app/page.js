@@ -5,6 +5,7 @@ import { ethers } from 'ethers';
 import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
 import emailjs from '@emailjs/browser';
+import CryptoTable from '../components/CryptoTable';
 import { useEffect, useState } from 'react';
 
 // Hoặc nếu dùng script tag ở HTML thì thêm:
