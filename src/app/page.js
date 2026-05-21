@@ -490,7 +490,7 @@ export default function MusicNFTStudio() {
         </header>
         {/* NAVBAR PHIÊN BẢN SANG TRỌNG */}
         <nav style={styles.navbar}>
-          <div style={styles.navLogo}>HÙNG LOUIS <span style={{ color: '#6366f1' }}>STUDIO</span></div>
+          <div style={styles.navLogo}>HÙNG LOUIS <span style={{ color: '#f0f0f7' }}>STUDIO</span></div>
           <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
             <div style={styles.visitBadge}>👁️ {totalVisits.toLocaleString()} lượt ghé thăm</div>
             <button style={styles.btnNav} onClick={connectWallet}>
@@ -693,7 +693,7 @@ const styles = {
   container: { backgroundColor: '#050505', color: '#fff', minHeight: '100vh', padding: '120px 40px' },
   navbar: { position: 'fixed', top: '15px', left: '20px', right: '20px', backgroundColor: 'rgba(15, 15, 15, 0.8)', backdropFilter: 'blur(15px)', display: 'flex', justifyContent: 'space-between', padding: '15px 30px', borderRadius: '100px', border: '1px solid #333', zIndex: 1000 },
   navLogo: { fontSize: '20px', fontWeight: '900' },
-  visitBadge: { color: '#6366f1', fontSize: '11px', fontWeight: 'bold', border: '1px solid rgba(99,102,241,0.2)', padding: '5px 15px', borderRadius: '50px', backgroundColor: 'rgba(99,102,241,0.05)' },
+  visitBadge: { color: '#f7f7f8', fontSize: '11px', fontWeight: 'bold', border: '1px solid rgba(99,102,241,0.2)', padding: '5px 15px', borderRadius: '50px', backgroundColor: 'rgba(99,102,241,0.05)' },
   btnNav: { background: 'linear-gradient(90deg, #6366f1, #a855f7)', border: 'none', color: '#fff', padding: '8px 20px', borderRadius: '50px', fontWeight: 'bold', cursor: 'pointer' },
   sectionMax: { maxWidth: '650px', margin: '0 auto 60px' },
   cardGlass: { backgroundColor: 'rgba(255,255,255,0.03)', padding: '35px', borderRadius: '32px', border: '1px solid #222', backdropFilter: 'blur(15px)' },
@@ -861,7 +861,7 @@ const styles = {
   },
   visitBadge: {
     backgroundColor: 'rgba(99, 102, 241, 0.15)',
-    color: '#6366f1',
+    color: '#ffffff',
     padding: '5px 12px',
     borderRadius: '20px',
     fontSize: '12px',
