@@ -55,7 +55,6 @@ export default function MusicNFTStudio() {
   const [orderId, setOrderId] = useState("");
   const [isPending, setIsPending] = useState(false);
   const [nfts, setNfts] = useState([]);
-  const [rates, setRates] = useState({ eth: 1, usdt: 2065, vnd: 60000000 }); // Mặc định để tránh lỗi chia cho 0
   const [selectednft, setselectednft] = useState(null);
   const [orderCode, setOrderCode] = useState("");
   const [ethPriceUSD, setEthPriceUSD] = useState(2065); // Giá mặc định nếu API lỗi
@@ -68,6 +67,10 @@ export default function MusicNFTStudio() {
   const [activeQRUrl, setActiveQRUrl] = useState('');
   const [userWalletAddress, setUserWalletAddress] = useState('');
   const [isConnected, setIsConnected] = useState(false);
+  const [rates, setRates] = useState({ eth: "3,150.00", vnd: "25,400.00" });
+  const [lastUpdated, setLastUpdated] = useState("Đang kết nối...");
+
+
   {/* ĐOẠN Ổ KHÓA (DÁN ĐÈ LÊN GIỮA HAI DÒNG CHỮ NÀY) */ }
   // -------------------------------------------------------------
   // TẦNG 1: KHAI BÁO TẤT CẢ CÁC STATE (Tương tác trạng thái)
@@ -77,48 +80,11 @@ export default function MusicNFTStudio() {
   useEffect(() => {
 
     const ws =
-      new WebSocket(
-        'ws://localhost:3002'
-      );
-
-    ws.onopen = () => {
-
-      console.log(
-        'WebSocket connected'
-      );
-
-      setIsConnected(true);
-
-    };
-
-    ws.onmessage = (event) => {
-
-      const data =
-        JSON.parse(event.data);
-
-      if (data.rates) {
-
-        setRates(data.rates);
-
-      }
-
-    };
-
-    ws.onclose = () => {
-
-      console.log(
-        'WebSocket disconnected'
-      );
-
-      setIsConnected(false);
-
-    };
-
-    return () => {
-
-      ws.close();
-
-    };
+      new WebSocket('ws://localhost:3002');
+    ws.onopen = () => { console.log('WebSocket connected'); setIsConnected(true); };
+    ws.onmessage = (event) => { const data = JSON.parse(event.data); if (data.rates) { setRates(data.rates); } };
+    ws.onclose = () => { console.log('WebSocket disconnected'); setIsConnected(false); };
+    return () => { ws.close(); };
 
   }, []);
 
@@ -130,54 +96,51 @@ export default function MusicNFTStudio() {
 
   // 1. Hàm kiểm tra ví Web3 Auth (Chúng ta vừa viết)
   useEffect(() => {
-    async function checkWallet() {
-      if (typeof window !== 'undefined' && window.ethereum) {
-        try {
-          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-          if (accounts && accounts.length > 0) {
-            setWalletAddress(accounts[0].toLowerCase().trim());
-            setIsConnected(true);
-          }
-        } catch (error) { console.error(error); }
-      }
-    }
+    async function checkWallet() { if (typeof window !== 'undefined' && window.ethereum) { try { const accounts = await window.ethereum.request({ method: 'eth_accounts' }); if (accounts && accounts.length > 0) { setWalletAddress(accounts[0].toLowerCase().trim()); setIsConnected(true); } } catch (error) { console.error(error); } } }
     checkWallet();
-    if (typeof window !== 'undefined' && window.ethereum) {
-      const handleAccounts = (accounts) => {
-        if (accounts && accounts.length > 0) {
-          setWalletAddress(accounts[0].toLowerCase().trim());
-          setIsConnected(true);
-          window.location.reload();
-        } else {
-          setWalletAddress('');
-          setIsConnected(false);
-        }
-      };
-      window.ethereum.on('accountsChanged', handleAccounts);
-      return () => { if (window.ethereum && window.ethereum.removeListener) window.ethereum.removeListener('accountsChanged', handleAccounts); };
-    }
+    if (typeof window !== 'undefined' && window.ethereum) { const handleAccounts = (accounts) => { if (accounts && accounts.length > 0) { setWalletAddress(accounts[0].toLowerCase().trim()); setIsConnected(true); window.location.reload(); } else { setWalletAddress(''); setIsConnected(false); } }; window.ethereum.on('accountsChanged', handleAccounts); return () => { if (window.ethereum && window.ethereum.removeListener) window.ethereum.removeListener('accountsChanged', handleAccounts); }; }
   }, []);
+
   useEffect(() => {
     // 1. Lấy tỉ giá từ Server nhà mình
-    const loadRates = async () => {
+    const loadRates = async () => { const res = await fetch('https://crypto-api-6qmy.onrender.com/api/rates'); const data = await res.json(); console.log(data); };
+  }, []);
 
-      const res = await fetch('https://crypto-api-6qmy.onrender.com/api/rates');
-
-      const data = await res.json();
-
-      console.log(data);
-
-    };
+  useEffect(() => {
     const fetchRates = async () => {
       try {
-        const res = await fetch('https://crypto-api-6qmy.onrender.com/api/rates');
+        const res = await fetch('https://crypto-api-6qmy.onrender.com');
+        if (!res.ok) return; // Nếu server lỗi, thoát ra và giữ nguyên số cũ
+
         const data = await res.json();
-        setRates(data);
+
+        // Chỉ cập nhật nếu server trả về dữ liệu hợp lệ
+        if (data && (data.ethereum || data.eth)) {
+          // Đồng bộ theo cấu hình API mới (lấy từ data.ethereum.usd hoặc data.eth)
+          const ethPrice = data.ethereum?.usd || data.eth;
+          const vndPrice = data.vnd || 25400;
+
+          setRates({
+            eth: Number(ethPrice).toLocaleString('en-US', { minimumFractionDigits: 2 }),
+            vnd: Number(vndPrice).toLocaleString('vi-VN')
+          });
+
+          const now = new Date().toLocaleTimeString('vi-VN');
+          setLastUpdated(now);
+        }
       } catch (err) {
-        console.log("Dùng Server dự phòng");
+        console.error("Lỗi cập nhật tỷ giá (giữ nguyên số cũ):", err);
       }
     };
+
+    fetchRates();
+    const interval = setInterval(fetchRates, 30000); // 30 giây load một lần ngầm
+    return () => clearInterval(interval);
   }, []);
+
+
+
+
   // Tự động cập nhật mỗi 5 phút
   useEffect(() => {
     fetchETHPrice();
@@ -185,33 +148,19 @@ export default function MusicNFTStudio() {
     return () => clearInterval(interval);
   }, []);
 
-  // 1. LẤY TỶ GIÁ REALTIME (30 giây cập nhật một lần)
-  useEffect(() => {
-    const fetchRates = async () => {
-      try {
-        const res = await fetch('https://crypto-api-6qmy.onrender.com/api/rates');
-        const data = await res.json();
-        setRates({ eth: data.eth, usdt: data.usdt, vnd: data.vnd });
-      } catch (err) { console.error("Lỗi cập nhật tỷ giá:", err); }
-    };
-    fetchRates();
-    const interval = setInterval(fetchRates, 30000);
-    return () => clearInterval(interval);
-  }, []);
+
+
   // 2. LẤY DANH SÁCH NFT TỪ SUPABASE
   useEffect(() => {
-    const fetchNfts = async () => {
-      const { data, error } = await supabase.from('items').select('*').eq("is_hidden", false);
-      if (data) setNfts(data);
-    };
+    const fetchNfts = async () => { const { data, error } = await supabase.from('items').select('*').eq("is_hidden", false); if (data) setNfts(data); };
     fetchNfts();
     handleVisitorCount();
   }, []);
+
   // 2. HÀM USEEFFECT CŨ CỦA BẠN (DÒNG 57 CŨ) - BẮT BUỘC DI CHUYỂN LÊN ĐẶT TẠI ĐÂY
   useEffect(() => {
-    // Đoạn code lấy tỷ giá cũ của bạn (const fetchRates = async () => { ... })
-    // Đặt ở đây thì React sẽ chấp nhận là nằm trong Body của Function
-  }, []); // Giữ nguyên các tham số phụ của bạn phía sau nếu có
+
+  }, []);
 
 
   // -------------------------------------------------------------
@@ -252,13 +201,6 @@ export default function MusicNFTStudio() {
       console.error("Không lấy được giá ETH mới:", err);
     }
   };
-  //fetch("https://manhhungmarketplace.onrender.com/webhook-payment", {
-  //method: "POST",
-  //headers: {
-  //    "Content-Type": "application/json"  },
-  //body: JSON.stringify({ order_id: 123 })});
-
-
 
   const fetchNFTs = async () => {
     const { data } = await supabase.from('items').select('*').eq("is_hidden", false).order('created_at', { ascending: false });
@@ -503,6 +445,42 @@ export default function MusicNFTStudio() {
             </button>
           </div>
         </nav>
+
+        {/*HỘP TỈ GIÁ CRYPTO*/}
+
+        <div style={{
+          padding: '15px',
+          background: '#1a1a1a',
+          border: '1px solid #333',
+          borderRadius: '8px',
+          color: '#fff',
+          fontFamily: 'monospace',
+          maxWidth: '350px',
+          margin: '10px 0'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+            {/* Đèn tín hiệu nhấp nháy màu xanh khi có dữ liệu */}
+            <span style={{
+              height: '10px',
+              width: '10px',
+              backgroundColor: lastUpdated ? '#00ff00' : '#ff0000',
+              borderRadius: '50%',
+              display: 'inline-block',
+              marginRight: '8px',
+              boxShadow: lastUpdated ? '0 0 8px #00ff00' : 'none'
+            }}></span>
+            <b style={{ fontSize: '14px', color: '#00ff00' }}>BINANCE REALTIME RATES (TỈ GIÁ THEO THỜI GIAN THỰC TỪ BINANCE.COM)</b>
+          </div>
+
+          <div style={{ fontSize: '13px', lineHeight: '1.6' }}>
+            <p>🔹 <b>ETH/USDT:</b> ${rates.eth}</p>
+            <p>🔹 <b>USDT/VND:</b> {rates.vnd} đ</p>
+            <p>🔹 <b>Cập nhật cuối:</b> <span style={{ color: '#ffea00' }}>{lastUpdated}</span></p>
+          </div>
+
+        </div>
+
+
         {/* SHOWROOM SECTION */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {nfts.map((nft) => (
