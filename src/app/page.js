@@ -409,7 +409,40 @@ export default function MusicNFTStudio() {
         {/* NAVBAR PHIÊN BẢN SANG TRỌNG */}
         <nav style={styles.navbar}>
           <div style={styles.navLogo}>HÙNG LOUIS <span style={{ color: '#f0f0f7' }}>STUDIO</span></div>
-          <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+          {/*HỘP TỈ GIÁ CRYPTO*/}
+
+          <div style={{
+            padding: '15px',
+            background: '#1a1a1a',
+            border: '1px solid #333',
+            borderRadius: '8px',
+            color: '#fff',
+            fontFamily: 'monospace',
+            maxWidth: '350px',
+            margin: '5px 0'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
+              {/* Đèn tín hiệu nhấp nháy màu xanh khi có dữ liệu */}
+              <span style={{
+                height: '10px',
+                width: '10px',
+                backgroundColor: lastUpdated ? '#00ff00' : '#ff0000',
+                borderRadius: '50%',
+                display: 'inline-block',
+                marginRight: '8px',
+                boxShadow: lastUpdated ? '0 0 8px #00ff00' : 'none'
+              }}></span>
+              <b style={{ fontSize: '14px', color: '#00ff00' }}>BINANCE REALTIME RATES</b>
+            </div>
+
+            <div style={{ fontSize: '13px', lineHeight: '1.6' }}>
+              <p>🔹 <b>ETH/USDT:</b> ${rates.eth}</p>
+              <p>🔹 <b>USDT/VND:</b> {rates.vnd} đ</p>
+              <p>🔹 <b>Cập nhật cuối:</b> <span style={{ color: '#ffea00' }}>{lastUpdated}</span></p>
+            </div>
+
+          </div>
+          <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
             <div style={styles.visitBadge}>👁️ {totalVisits.toLocaleString()} lượt ghé thăm</div>
             <button style={styles.btnNav} onClick={connectWallet}>
               {userAddress ? `🦊 ${userAddress}` : (authEmail ? `👤 ${authEmail.substring(0, 8)}...` : '🔗 Kết nối Ví')}
@@ -421,39 +454,7 @@ export default function MusicNFTStudio() {
           </div>
         </nav>
 
-        {/*HỘP TỈ GIÁ CRYPTO*/}
 
-        <div style={{
-          padding: '15px',
-          background: '#1a1a1a',
-          border: '1px solid #333',
-          borderRadius: '8px',
-          color: '#fff',
-          fontFamily: 'monospace',
-          maxWidth: '350px',
-          margin: '10px 0'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-            {/* Đèn tín hiệu nhấp nháy màu xanh khi có dữ liệu */}
-            <span style={{
-              height: '10px',
-              width: '10px',
-              backgroundColor: lastUpdated ? '#00ff00' : '#ff0000',
-              borderRadius: '50%',
-              display: 'inline-block',
-              marginRight: '8px',
-              boxShadow: lastUpdated ? '0 0 8px #00ff00' : 'none'
-            }}></span>
-            <b style={{ fontSize: '14px', color: '#00ff00' }}>BINANCE REALTIME RATES (TỈ GIÁ THEO THỜI GIAN THỰC TỪ BINANCE.COM)</b>
-          </div>
-
-          <div style={{ fontSize: '13px', lineHeight: '1.6' }}>
-            <p>🔹 <b>ETH/USDT:</b> ${rates.eth}</p>
-            <p>🔹 <b>USDT/VND:</b> {rates.vnd} đ</p>
-            <p>🔹 <b>Cập nhật cuối:</b> <span style={{ color: '#ffea00' }}>{lastUpdated}</span></p>
-          </div>
-
-        </div>
 
 
         {/* SHOWROOM SECTION */}
