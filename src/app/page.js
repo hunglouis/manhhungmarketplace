@@ -103,40 +103,43 @@ export default function MusicNFTStudio() {
 
   useEffect(() => {
     // 1. Lấy tỉ giá từ Server nhà mình
-    const loadRates = async () => { const res = await fetch('https://crypto-api-6qmy.onrender.com/api/rates'); const data = await res.json(); console.log(data); };
+    const loadRates = async () => { const res = await fetch('http://localhost:3002/api/rates'); const data = await res.json(); console.log(data); };
   }, []);
 
   useEffect(() => {
     const fetchRates = async () => {
       try {
-        const res = await fetch('https://crypto-api-6qmy.onrender.com');
-        if (!res.ok) return; // Nếu server lỗi, thoát ra và giữ nguyên số cũ
+        // 1. Gọi trực tiếp vào backend localhost đang chạy của bạn
+        const res = await fetch('http://localhost:3002/api/rates');
+        if (!res.ok) return;
 
         const data = await res.json();
 
-        // Chỉ cập nhật nếu server trả về dữ liệu hợp lệ
-        if (data && (data.ethereum || data.eth)) {
-          // Đồng bộ theo cấu hình API mới (lấy từ data.ethereum.usd hoặc data.eth)
-          const ethPrice = data.ethereum?.usd || data.eth;
+        // 2. Bóc tách dữ liệu dựa theo cấu trúc server.js trả về
+        if (data) {
+          // Lấy giá ETH (nếu backend trả về dạng data.ethereum.usd hoặc data.eth)
+          const ethPrice = data.ethereum?.usd || data.eth || 3150;
           const vndPrice = data.vnd || 25400;
 
           setRates({
             eth: Number(ethPrice).toLocaleString('en-US', { minimumFractionDigits: 2 }),
-            vnd: Number(vndPrice).toLocaleString('vi-VN')
+            vnd: Number(vndPrice).toLocaleString('vi-VN', { minimumFractionDigits: 2 })
           });
 
+          // 3. Đổi trạng thái hiển thị thời gian thực tế
           const now = new Date().toLocaleTimeString('vi-VN');
           setLastUpdated(now);
         }
       } catch (err) {
-        console.error("Lỗi cập nhật tỷ giá (giữ nguyên số cũ):", err);
+        console.error("Lỗi kết nối API local:", err);
       }
     };
 
     fetchRates();
-    const interval = setInterval(fetchRates, 30000); // 30 giây load một lần ngầm
+    const interval = setInterval(fetchRates, 30000); // Tự động load lại sau mỗi 30 giây ngầm
     return () => clearInterval(interval);
   }, []);
+
 
 
 
@@ -193,7 +196,7 @@ export default function MusicNFTStudio() {
 
   const fetchETHPrice = async () => {
     try {
-      const res = await axios.get('https://crypto-api-6qmy.onrender.com/api/eth-price');
+      const res = await axios.get('http://localhost:3002/api/rates/eth-price');
       const price = res.data.ethereum.usd;
       setEthPriceUSD(price);
       console.log("🚀 Giá ETH mới nhất:", price, "USD");
