@@ -196,7 +196,7 @@ export default function MusicNFTStudio() {
 
   const fetchETHPrice = async () => {
     try {
-      const res = await axios.get('http://localhost:3002/api/rates/eth-price');
+      const res = await axios.get('http://localhost:3002/api/rates/');
       const price = res.data.ethereum.usd;
       setEthPriceUSD(price);
       console.log("🚀 Giá ETH mới nhất:", price, "USD");
