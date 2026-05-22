@@ -78,78 +78,50 @@ export default function MusicNFTStudio() {
 
 
   useEffect(() => {
+    // 1. Hàm lấy dữ liệu lần đầu tiên khi vừa tải trang
+    const fetchInitialRates = async () => {
+      const { data, error } = await supabase
+        .from('crypto_rates')
+        .select('*')
+        .eq('id', 1)
+        .single();
 
-    const ws =
-      new WebSocket('ws://localhost:3002');
-    ws.onopen = () => { console.log('WebSocket connected'); setIsConnected(true); };
-    ws.onmessage = (event) => { const data = JSON.parse(event.data); if (data.rates) { setRates(data.rates); } };
-    ws.onclose = () => { console.log('WebSocket disconnected'); setIsConnected(false); };
-    return () => { ws.close(); };
-
-  }, []);
-
-  // ... các biến useState cũ của bạn (nếu có) phải đặt tại đây ...
-
-  // -------------------------------------------------------------
-  // TẦNG 2: ĐẶT TẤT CẢ CÁC HÀM USEEFFECT (Kể cả hàm cũ bị lỗi dòng 57)
-  // -------------------------------------------------------------
-
-  // 1. Hàm kiểm tra ví Web3 Auth (Chúng ta vừa viết)
-  useEffect(() => {
-    async function checkWallet() { if (typeof window !== 'undefined' && window.ethereum) { try { const accounts = await window.ethereum.request({ method: 'eth_accounts' }); if (accounts && accounts.length > 0) { setWalletAddress(accounts[0].toLowerCase().trim()); setIsConnected(true); } } catch (error) { console.error(error); } } }
-    checkWallet();
-    if (typeof window !== 'undefined' && window.ethereum) { const handleAccounts = (accounts) => { if (accounts && accounts.length > 0) { setWalletAddress(accounts[0].toLowerCase().trim()); setIsConnected(true); window.location.reload(); } else { setWalletAddress(''); setIsConnected(false); } }; window.ethereum.on('accountsChanged', handleAccounts); return () => { if (window.ethereum && window.ethereum.removeListener) window.ethereum.removeListener('accountsChanged', handleAccounts); }; }
-  }, []);
-
-  useEffect(() => {
-    // 1. Lấy tỉ giá từ Server nhà mình
-    const loadRates = async () => { const res = await fetch('http://localhost:3002/api/rates'); const data = await res.json(); console.log(data); };
-  }, []);
-
-  useEffect(() => {
-    const fetchRates = async () => {
-      try {
-        // 1. Gọi trực tiếp vào backend localhost đang chạy của bạn
-        const res = await fetch('http://localhost:3002/api/rates');
-        if (!res.ok) return;
-
-        const data = await res.json();
-
-        // 2. Bóc tách dữ liệu dựa theo cấu trúc server.js trả về
-        if (data) {
-          // Lấy giá ETH (nếu backend trả về dạng data.ethereum.usd hoặc data.eth)
-          const ethPrice = data.ethereum?.usd || data.eth || 3150;
-          const vndPrice = data.vnd || 25400;
-
-          setRates({
-            eth: Number(ethPrice).toLocaleString('en-US', { minimumFractionDigits: 2 }),
-            vnd: Number(vndPrice).toLocaleString('vi-VN', { minimumFractionDigits: 2 })
-          });
-
-          // 3. Đổi trạng thái hiển thị thời gian thực tế
-          const now = new Date().toLocaleTimeString('vi-VN');
-          setLastUpdated(now);
-        }
-      } catch (err) {
-        console.error("Lỗi kết nối API local:", err);
+      if (data && !error) {
+        updateRatesState(data);
       }
     };
 
-    fetchRates();
-    const interval = setInterval(fetchRates, 30000); // Tự động load lại sau mỗi 30 giây ngầm
-    return () => clearInterval(interval);
+    // Hàm phụ để Format định dạng số hiển thị ra màn hình
+    const updateRatesState = (data) => {
+      setRates({
+        eth: Number(data.eth_price).toLocaleString('en-US', { minimumFractionDigits: 2 }),
+        vnd: Number(data.vnd_rate).toLocaleString('vi-VN')
+      });
+      const now = new Date(data.updated_at).toLocaleTimeString('vi-VN');
+      setLastUpdated(now);
+    };
+
+    fetchInitialRates();
+
+    // 2. KÍCH HOẠT LẮNG NGHE REALTIME: Cứ bảng 'crypto_rates' có UPDATE là cập nhật giao diện lập tức
+    const ratesChannel = supabase
+      .channel('realtime-rates')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'crypto_rates' },
+        (payload) => {
+          console.log('Nhận dữ liệu Realtime mới từ Supabase:', payload.new);
+          updateRatesState(payload.new);
+        }
+      )
+      .subscribe();
+
+    // Hủy kết nối lắng nghe khi người dùng tắt trang web để tránh tốn tài nguyên
+    return () => {
+      supabase.removeChannel(ratesChannel);
+    };
   }, []);
 
-
-
-
-
-  // Tự động cập nhật mỗi 5 phút
-  useEffect(() => {
-    fetchETHPrice();
-    const interval = setInterval(fetchETHPrice, 300000);
-    return () => clearInterval(interval);
-  }, []);
 
 
 
