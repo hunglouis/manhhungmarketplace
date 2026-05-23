@@ -12,7 +12,7 @@ const supabase = createClient(
 export async function GET() {
   const apiKey = process.env.COINGECKO_API_KEY;
   const coinIds = 'bitcoin,ethereum,binancecoin,solana';
-  const url = `https://coingecko.com{coinIds}&vs_currencies=usd,vnd`;
+  const url = `https://coingecko.com/api/v3/simple/price?ids=${coinIds}&vs_currencies=usd,vnd`;
 
   try {
     const response = await fetch(url, {
