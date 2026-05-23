@@ -7,6 +7,13 @@ import axios from 'axios';
 import emailjs from '@emailjs/browser';
 import CryptoTable from '../components/CryptoTable';
 import { useEffect, useState } from 'react';
+//import './style.css'; // Import trực tiếp file css vừa tạo
+
+
+let currentAudio = null;
+let currentCard = null;
+let previewTimeout = null;
+
 
 // Hoặc nếu dùng script tag ở HTML thì thêm:
 // <script src="https://jsdelivr.net"></script>
@@ -75,6 +82,31 @@ export default function MusicNFTStudio() {
   // -------------------------------------------------------------
   // TẦNG 1: KHAI BÁO TẤT CẢ CÁC STATE (Tương tác trạng thái)
   // -------------------------------------------------------------
+  // Hàm kiểm tra xem người dùng hiện tại có phải là CHÍNH CHỦ của NFT hay không
+  // DÁN HÀM KIỂM TRA CHÍNH CHỦ VÀO NGAY ĐÂY (PHẦN ĐẦU HÀM CHÍNH)
+  function checkIsChinhChu(nftObject) {
+    if (!isConnected || !userWalletAddress || !nftObject || !nftObject.owner_wallet_address) {
+      return false; // Không kết nối ví, hoặc thiếu thông tin -> Mặc định là KHÔNG PHẢI CHÍNH CHỦ
+    }
+    // So sánh 2 địa chỉ ví (ép về chữ thường để tránh lỗi ký tự hoa-thường)
+    return userWalletAddress.toLowerCase() === nftObject.owner_wallet_address.toLowerCase();
+  }
+  // ========================================================
+  // HÀM ĐẶC QUYỀN CHO CREATOR VÀ OWNER: Nếu là creator hoặc owner của NFT, cho phép nghe không giới hạn thời gian
+  // ========================================================
+  function checkHasFullAccess(nftObject) {
+    if (!isConnected || !userWalletAddress || !nftObject) {
+      return { hasAccess: false, reason: "GUEST" };
+    }
+    const currentWallet = userWalletAddress.toLowerCase();
+    const creatorWallet = nftObject.creator_wallet_address?.toLowerCase();
+    const ownerWallet = nftObject.owner_wallet_address?.toLowerCase();
+
+    if (currentWallet === creatorWallet) return { hasAccess: true, reason: "CREATOR" };
+    if (currentWallet === ownerWallet) return { hasAccess: true, reason: "OWNER" };
+
+    return { hasAccess: false, reason: "NO_RIGHTS" };
+  }
 
 
   useEffect(() => {
@@ -300,91 +332,102 @@ export default function MusicNFTStudio() {
   // TẦNG 5: GIAO DIỆN HIỂN THỊ THẬT KHI ĐÃ CÓ VÍ
   // -------------------------------------------------------------
 
-  // ⬇️ DÁN CHÍNH XÁC KHỐI LUỒNG ĐIỀU KHIỂN NÀY NGAY PHÍA TRÊN LỆNH RETURN ( ... ) ⬇️
-  let currentAudio = null;
-  let currentCard = null;
+
+  // ĐOẠN CODE CẬP NHẬT MỚI TOÀN DIỆN CHO 3 HÀM ĐIỀU KHIỂN
   let previewTimeout = null;
+  let currentActiveAudio = null; // Biến lưu player duy nhất đang phát trên toàn trang
 
-  function playPreview(cardElement) {
-    // 1. Lấy link tệp từ thuộc tính data-audio (Sử dụng đúng cột image_url của bạn)
-    const mediaUrl = cardElement.getAttribute('data-audio') || cardElement.getAttribute('data-image');
-    if (!mediaUrl) return;
-
-    // 2. Chống phát đè bài cũ
-    if (currentAudio) {
-      if (typeof currentAudio.pause === 'function') currentAudio.pause();
-      if (currentCard) {
-        const oldVideo = currentCard.querySelector('.nft-video-preview');
-        if (oldVideo) { oldVideo.style.display = 'none'; oldVideo.pause(); }
-        const oldBtn = currentCard.querySelector('.play-btn-overlay');
-        if (oldBtn) oldBtn.innerHTML = '▶';
-      }
-    }
-
-    currentCard = cardElement;
-    const playButton = cardElement.querySelector('.play-btn-overlay');
-    if (playButton) playButton.innerHTML = '⏸';
-
-    // 3. TỰ ĐỘNG NHẬN DIỆN MV (VIDEO) HOẶC AUDIO THƯỜNG
-    const videoPreview = cardElement.querySelector('.nft-video-preview');
-
-    if (videoPreview) {
-      videoPreview.style.display = 'block'; // Hiện video đè lên poster
-      videoPreview.currentTime = 0;
-      videoPreview.muted = false; // Bật tiếng trực tiếp của MV
-      videoPreview.volume = 1.0;
-      videoPreview.play().catch(err => console.log("Chờ tương tác"));
-      currentAudio = videoPreview;
-    } else {
-      currentAudio = new Audio(mediaUrl);
-      currentAudio.play().catch(err => console.log("Chờ tương tác"));
-    }
-
-    // 4. BỘ ĐẾM THỜI GIAN NGẮT BẢN QUYỀN TÁC GIẢ (45 GIÂY)
+  function forceStopEverything() {
     clearTimeout(previewTimeout);
 
-    // Nếu chưa kết nối ví (isConnected === false), chỉ cho nghe thử 45 giây
-    if (!isConnected) {
-      console.log("⚠️ Khách vãng lai chưa kết nối ví. Giới hạn 45 giây kích hoạt.");
+    // 1. Tắt đồng hồ đếm ngược
+    const banner = document.getElementById('copyright-timer-banner');
+    if (banner) banner.style.display = 'none';
 
-      previewTimeout = setTimeout(() => {
-        if (currentCard === cardElement) {
-          if (videoPreview) {
-            videoPreview.pause();
-            videoPreview.muted = true;
-            videoPreview.style.display = 'none'; // Ẩn video trả lại ảnh bìa
-          } else if (currentAudio) {
-            currentAudio.pause();
-          }
-          if (playButton) playButton.innerHTML = '▶';
-
-          alert("🎵 Bạn đã nghe hết 45 giây thử nghiệm của tác phẩm. Vui lòng bấm nút 'Kết nối ví' ở góc trên để xác thực bản quyền và thưởng thức trọn vẹn ca khúc!");
-          currentAudio = null;
-          currentCard = null;
-        }
-      }, 45000); // Ngắt đúng giây thứ 45
-    } else {
-      console.log("✅ Đã kết nối ví. Mở khóa toàn quyền nghe trọn vẹn.");
+    // 2. Dừng player đang phát hiện tại dứt khoát trước khi chuyển bài
+    if (currentActiveAudio) {
+      try {
+        currentActiveAudio.pause();
+        currentActiveAudio.ontimeupdate = null; // Xóa bộ giám sát thời gian của bài cũ
+      } catch (e) { console.log(e); }
+      currentActiveAudio = null;
     }
   }
 
-  function stopPreview(cardElement) {
-    if (currentCard === cardElement) {
-      const videoPreview = cardElement.querySelector('.nft-video-preview');
-      if (videoPreview) {
-        videoPreview.pause();
-        videoPreview.muted = true;
-        videoPreview.style.display = 'none';
-      } else if (currentAudio && typeof currentAudio.pause === 'function') {
-        currentAudio.pause();
+  // Hàm xử lý khi DI CHUỘT VÀO CARD
+  function playPreview(cardElement) {
+    // Tìm thẻ audio đầy đủ tính năng đang nằm trên chính chiếc Card này
+    const localAudio = cardElement.querySelector('audio');
+    if (!localAudio) return;
+
+    // Nếu di chuột qua lại trên bài ĐANG PHÁT thì giữ nguyên, không khởi động lại
+    if (currentActiveAudio === localAudio && !localAudio.paused) return;
+
+    // Dừng bài cũ đang phát ở chỗ khác ngay lập tức (Đáp ứng yêu cầu: Tại một thời điểm chỉ có 1 bài hát)
+    forceStopEverything();
+
+    // Đánh dấu đây là player duy nhất được quyền hoạt động hiện tại
+    currentActiveAudio = localAudio;
+    localAudio.currentTime = 0;
+    localAudio.play().catch(err => console.log("Chờ tương tác chuột"));
+
+    // Lấy quyền ví từ thuộc tính của Card để kiểm tra tiên đề Chính chủ
+    const nftOwnerAddress = cardElement.getAttribute('data-owner') || "";
+    const currentNftData = { owner_wallet_address: nftOwnerAddress };
+    const accessControl = checkHasFullAccess(currentNftData);
+
+    // KÍCH HOẠT CHẶN BẢN QUYỀN 45 GIÂY CHO KHÁCH HOẶC VÍ KHÔNG CHÍNH CHỦ
+    if (!accessControl.hasAccess) {
+      const banner = document.getElementById('copyright-timer-banner');
+      const circleBox = document.getElementById('timer-circle-box');
+      const bTitle = document.getElementById('timer-banner-title');
+      const bDesc = document.getElementById('timer-banner-desc');
+
+      if (banner && circleBox && bTitle && bDesc) {
+        banner.style.display = 'block';
+        banner.style.borderColor = 'rgba(6, 182, 212, 0.3)';
+        circleBox.innerHTML = '45';
+        bTitle.innerHTML = 'Đang nghe thử bản quyền';
+        bDesc.innerHTML = 'Player đầy đủ tính năng đang bị giới hạn 45 giây.';
       }
-      const playButton = cardElement.querySelector('.play-btn-overlay');
-      if (playButton) playButton.innerHTML = '▶';
-      currentAudio = null;
-      currentCard = null;
-      clearTimeout(previewTimeout);
+
+      // Giám sát thời gian thực của CHÍNH cái player hiển thị trên màn hình
+      localAudio.onTimeUpdate = function () {
+        const timeLeft = Math.max(0, Math.ceil(45 - localAudio.currentTime));
+        if (circleBox) circleBox.innerHTML = timeLeft;
+
+        // KHÓA CỨNG Ở GIÂY 45
+        if (localAudio.currentTime >= 45) {
+          localAudio.pause();
+          localAudio.currentTime = 45; // Khóa chặt không cho nghe tiếp
+          localAudio.ontimeupdate = null; // Tắt bộ đếm
+
+          if (banner && circleBox && bTitle && bDesc) {
+            banner.style.borderColor = '#ef4444';
+            circleBox.innerHTML = '✕';
+            circleBox.style.borderColor = '#ef4444';
+            circleBox.style.color = '#ef4444';
+            bTitle.innerHTML = 'Hết thời gian nghe thử!';
+            bDesc.innerHTML = 'Chỉ ví sở hữu <b>Chính chủ</b> mới được mở khóa nghe full trên player.';
+          }
+        }
+      };
+    } else {
+      // NẾU LÀ VÍ CHÍNH CHỦ: Không gắn ontimeupdate, player mở khóa hoàn toàn để chủ sở hữu nghe full bài, tua nhạc tùy ý!
+      console.log("✅ Chính chủ xác thực thành công. Player đã được mở khóa toàn bộ tính năng!");
     }
   }
+
+  // Hàm xử lý khi RÊ CHUỘT RA NGOÀI CARD
+  function stopPreview(cardElement) {
+    const localAudio = cardElement.querySelector('audio');
+    // Khi rời chuột, nếu bài này đang phát thì tắt đi
+    if (currentActiveAudio === localAudio) {
+      forceStopEverything();
+    }
+  }
+
+
 
   return (
 
@@ -465,11 +508,37 @@ export default function MusicNFTStudio() {
               <div
                 className="music-card group relative h-72 cursor-pointer overflow-hidden bg-black"
                 data-audio={nft.image_url}
+                data-owner={nft.owner_wallet_address} // <-- BẮT BUỘC PHẢI CÓ DÒNG NÀY
                 onMouseEnter={(e) => playPreview(e.currentTarget)}
                 onMouseLeave={(e) => stopPreview(e.currentTarget)}
                 onClick={() => { if (playingId !== nft.id) { setCurrentTrack(nft); setPlayingId(nft.id); } }} >
                 {playingId === nft.id ? (
-                  nft.image_url?.includes(".mp3") ? (<audio controls autoPlay src={fixIPFS(nft.image_url)} className="w-full" />
+                  nft.image_url?.includes(".mp3") ? (<audio
+                    ref={mainAudioRef} // Khai báo useRef cho audio chính nếu bạn dùng React
+                    src={currentTrack?.audio_url}
+                    onTimeUpdate={(e) => {
+                      const audioEl = e.currentTarget;
+
+                      // ÁP DỤNG TIÊN ĐỀ: Nếu KHÔNG PHẢI CHÍNH CHỦ bài nhạc đang phát
+                      const isChinhChu = checkIsChinhChu(currentTrack);
+
+                      if (!isChinhChu && audioEl.currentTime >= 45) {
+                        // 1. Khóa cứng và dừng nhạc ngay lập tức
+                        audioEl.pause();
+                        audioEl.currentTime = 45;
+
+                        // 2. Tắt trạng thái đang phát trên giao diện
+                        setPlayingId(null);
+
+                        // 3. Hiển thị thông báo bản quyền (Có thể gọi bảng banner đếm ngược đổi sang màu đỏ)
+                        const banner = document.getElementById('copyright-timer-banner');
+                        const circleBox = document.getElementById('timer-circle-box');
+                        const bTitle = document.getElementById('timer-banner-title');
+                        const bDesc = document.getElementById('timer-banner-desc');
+                        if (banner && circleBox && bTitle && bDesc) { banner.style.display = 'block'; banner.style.borderColor = '#ef4444'; circleBox.innerHTML = '✕'; circleBox.style.borderColor = '#ef4444'; circleBox.style.color = '#ef4444'; bTitle.innerHTML = 'Giới hạn bản quyền 45 giây!'; bDesc.innerHTML = isConnected ? 'Ví của bạn không sở hữu vật phẩm này. Vui lòng mua NFT để nghe trọn vẹn.' : 'Vui lòng kết nối ví <b>Chính chủ</b> để nghe toàn bộ bài hát.'; }
+                      }
+                    }}
+                    autoPlay src={fixIPFS(nft.image_url)} className="w-full, hidden" />
                   ) : (<video src={nft.image_url} autoPlay controls playsInline preload="metadata"
                     className="w-full h-full object-contain bg-black" />)
                 ) : (
@@ -637,6 +706,22 @@ export default function MusicNFTStudio() {
           )}
         </div>
       </div>
+      {/* BẢNG ĐỒNG HỒ ĐẾM NGƯỢC VÀ THÔNG BÁO (Bảo mật bản quyền) */}
+      <div id="copyright-timer-banner" style={{ display: 'none', position: 'fixed', bottom: '30px', right: '30px', zIndex: 9999, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(16px)', border: '1px solid rgba(6, 182, 212, 0.3)', borderRadius: '20px', padding: '20px', width: '320px', boxShadow: '0 20px 40px rgba(0,0,0,0.5)', fontFamily: "'Inter', sans-serif", transition: 'all 0.3s ease' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          {/* Vòng tròn đếm số */}
+          <div id="timer-circle-box" style={{ width: '50px', height: '50px', borderRadius: '50%', border: '3px solid #00ffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#00ffff', fontSize: '18px', boxShadow: '0 0 15px rgba(0,255,255,0.4)' }}>
+            45
+          </div>
+          {/* Nội dung chữ */}
+          <div style={{ flexGrow: 1 }}>
+            <h4 id="timer-banner-title" style={{ margin: 0, color: '#fff', fontSize: '14px', fontWeight: 700, letterSpacing: '-0.3px' }}>Đang nghe thử bản quyền</h4>
+            <p id="timer-banner-desc" style={{ margin: '3px 0 0 0', color: 'rgba(255,255,255,0.6)', fontSize: '11px' }}>Kết nối ví để mở khóa toàn bộ tác phẩm.</p>
+          </div>
+        </div>
+      </div>
+
+
     </div>
   );
 }
@@ -870,6 +955,9 @@ const styles = {
     fontWeight: 'bold',
     marginTop: '15px',
     cursor: 'pointer'
+  },
+  audio: {
+    display: 'none'
   },
 
 };
