@@ -432,6 +432,7 @@ export default function MusicNFTStudio() {
   return (
 
     <div className="min-h-screen bg-slate-950 text-slate-200 p-4 md:p-10 font-sans">
+      <style dangerouslySetInnerHTML={{ __html: `audio, audio::-webkit-media-controls-enclosure, audio::-webkit-media-controls-panel { display: none !important; visibility: hidden !important; opacity: 0 !important; height: 0px !important; width: 0px !important; max-height: 0px !important; max-width: 0px !important; position: absolute !important; top: -9999px !important; left: -9999px !important; pointer-events: none !important; }` }} />
       <div className="max-w-7xl mx-auto">
 
         {/* HEADER SECTION */}
@@ -518,18 +519,13 @@ export default function MusicNFTStudio() {
                     src={currentTrack?.audio_url}
                     onTimeUpdate={(e) => {
                       const audioEl = e.currentTarget;
-
-                      // ÁP DỤNG TIÊN ĐỀ: Nếu KHÔNG PHẢI CHÍNH CHỦ bài nhạc đang phát
                       const isChinhChu = checkIsChinhChu(currentTrack);
-
                       if (!isChinhChu && audioEl.currentTime >= 45) {
                         // 1. Khóa cứng và dừng nhạc ngay lập tức
                         audioEl.pause();
                         audioEl.currentTime = 45;
-
                         // 2. Tắt trạng thái đang phát trên giao diện
                         setPlayingId(null);
-
                         // 3. Hiển thị thông báo bản quyền (Có thể gọi bảng banner đếm ngược đổi sang màu đỏ)
                         const banner = document.getElementById('copyright-timer-banner');
                         const circleBox = document.getElementById('timer-circle-box');
