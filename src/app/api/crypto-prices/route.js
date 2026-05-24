@@ -8,11 +8,17 @@ const supabase = createClient(
   'https://supabase.co',
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
+export const dynamic = 'force-dynamic'; // Ép API luôn chạy ở thời gian thực, bỏ qua chế độ build tĩnh
+
 
 export async function GET() {
-  const apiKey = process.env.COINGECKO_API_KEY;
-  const coinIds = 'bitcoin,ethereum,binancecoin,solana';
-  const url = `https://coingecko.com/api/v3/simple/price?ids=${coinIds}&vs_currencies=usd,vnd`;
+  // Ví dụ lấy giá ETH và MATIC sang USD
+  const response = await fetch("https://binance.com[%22ETHUSDT%22,%22MATICUSDT%22]");
+  const data = await response.json();
+
+  // Dữ liệu Binance trả về dạng mảng, bạn bóc tách ra để map lại giống cấu trúc cũ của bạn:
+  // data[0].price sẽ là giá ETH, data[1].price sẽ là giá MATIC
+
 
   try {
     const response = await fetch(url, {
