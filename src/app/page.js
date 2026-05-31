@@ -18,14 +18,13 @@ let previewTimeout = null;
 // Hoặc nếu dùng script tag ở HTML thì thêm:
 // <script src="https://jsdelivr.net"></script>
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = `https://crypto-api-backend-2url.onrender.com`;
 const supabaseUrl = "https://hmvvjjiiaelcsfqgxbxv.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtdnZqamlpYWVsY3NmcWd4Ynh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzNDg4MzcsImV4cCI6MjA4OTkyNDgzN30.zCpflfgSmBwpwe62P7cr1Ppf5dMUMjh782EhZeZ-kuw";
 const supabase = createClient(supabaseUrl, supabaseKey);
 // Thông tin ngân hàng của bạn (Sửa tại đây)
 const MY_BANK = "BIDV";
 const MY_ACCOUNT = "3120464627";
-const API_BASE = 'https://crypto-api-6qmy.onrender.com';
 
 export default function MusicNFTStudio() {
   const [currentTrack, setCurrentTrack] = useState(null);
@@ -69,14 +68,13 @@ export default function MusicNFTStudio() {
 
     // 2. Tạo thông điệp ký bảo mật (kèm timestamp chống tấn công phát lại)
     const timestamp = Date.now();
-    const message = `Xac thuc quyen so huu NFT de mo khoa ban Full.\nToken ID: ${nft.tokenId}\nVí: ${walletAddress}\nThời gian: ${timestamp}`;
+    const message = `Xac thuc quyen so huu NFT de mo khoa ban Full.\nToken ID: ${nft.tokenId}\nVí: ${userWallet}\nThời gian: ${timestamp}`;
 
     // 3. Yêu cầu ký số (Không tốn gas)
     const signature = await signer.signMessage(message);
 
     // 3. Gửi lên Server Render (Sửa walletAddress thành userWallet)
-    const RENDER_BACKEND_URL = "https://crypto-api-backend-2url.onrender.com";
-    const response = await fetch(`${RENDER_BACKEND_URL}/api/access-full-content`, {
+    const response = await fetch(`${API_URL}/api/access-full-content`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -110,7 +108,7 @@ export default function MusicNFTStudio() {
     setTimeout(() => {
 
       // Hãy đảm bảo ID của thẻ audio trùng khớp với ID bạn đặt dưới phần return
-      const audioElement = document.getElementById(`audio-player-${item.id}`);
+      const audioElement = document.getElementById(`audio-player-${nft.id}`);
       if (audioElement) {
         audioElement.load();  // Nạp nguồn nhạc mới
         audioElement.play().catch(e => {
@@ -119,36 +117,10 @@ export default function MusicNFTStudio() {
       }
     }, 300);
   };
-  const getEthPrice = async () => {
-    try {
-      const res = await fetch(`https://${API_BASE}/api/ethPrice`);
-      const text = await res.text();
 
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${text}`);
-      }
-
-      try {
-        return JSON.parse(text);
-      } catch (err) {
-        console.error('Không phải JSON:', text);
-        throw new Error('Server không trả JSON');
-      }
-    } catch (error) {
-      console.error('Lỗi lấy giá ETH:', error.message);
-      return null;
-    }
-  };
-  // Sử dụng:
-  getEthPrice().then(data => {
-    if (data) console.log(data);
-  })
-
-
-
-  function NFTCard({ item }) {
+  function NFTCard({ nft }) {
     const [loading, setLoading] = useState(false);
-    const [audioSource, setAudioSource] = useState(item.previewURL); // Mặc định chạy bản Preview
+    const [audioSource, setAudioSource] = useState(nft.previewURL); // Mặc định chạy bản Preview
     const [isFullVersion, setIsFullVersion] = useState(false);
 
   }
@@ -235,18 +207,45 @@ export default function MusicNFTStudio() {
       }
     };
   }, []);
+
+
   useEffect(() => {
-    // Hàm phụ để Format định dạng số hiển thị ra màn hình
-    const updateRatesState = (data) => {
-      setRates({
-        eth: Number(data.eth_price).toLocaleString('en-US', { minimumFractionDigits: 2 }),
-        vnd: Number(data.vnd_rate).toLocaleString('vi-VN')
-      });
-      const now = new Date(data.updated_at).toLocaleTimeString('vi-VN');
-      setLastUpdated(now);
-      fetchInitialRates();
+    // 1. Định nghĩa hàm lấy dữ liệu tỉ giá và cập nhật giao diện
+    const fetchAndBuildRates = async () => {
+      try {
+        // Hãy thay thế bằng hàm gọi API thực tế của bạn, ví dụ getEthPrice() 
+        // hoặc fetch từ API_URL đã dựng ở bài trước
+        const res = await fetch(`${API_URL}/api/eth-price`);
+        const data = await res.json();
+
+        if (data) {
+          // 2. Định dạng số liệu và Cập nhật State tỉ giá
+          setRates({
+            eth: Number(data.eth_price || data.price).toLocaleString('en-US', { minimumFractionDigits: 2 }),
+            vnd: Number(data.vnd_rate || 25400).toLocaleString('vi-VN')
+          });
+
+          // 3. Cập nhật mốc thời gian hiển thị ra màn hình
+          const timeSource = data.updated_at ? new Date(data.updated_at) : new Date();
+          const formatTime = timeSource.toLocaleTimeString('vi-VN');
+          setLastUpdated(formatTime);
+        }
+      } catch (error) {
+        console.error("Lỗi cập nhật tỉ giá tự động:", error.message);
+        setLastUpdated("Lỗi kết nối API");
+      }
     };
-  }, []);
+
+    // 4. KÍCH HOẠT chạy ngay lập tức lần đầu tiên khi tải trang
+    fetchAndBuildRates();
+
+    // 5. THIẾT LẬP chu kỳ tự động chạy lại sau mỗi 30 giây (30000ms)
+    const intervalId = setInterval(fetchAndBuildRates, 30000);
+
+    // 6. Hàm dọn dẹp khi chuyển trang để không bị tốn tài nguyên RAM
+    return () => clearInterval(intervalId);
+  }, []); // Giữ nguyên mảng phụ thuộc trống [] để không bị lặp vô hạn
+
 
   useEffect(() => {
     // 2. KÍCH HOẠT LẮNG NGHE REALTIME: Cứ bảng 'crypto_rates' có UPDATE là cập nhật giao diện lập tức
@@ -294,7 +293,7 @@ export default function MusicNFTStudio() {
   // 2. Gửi dữ liệu về Server khi người dùng nhấn Play
   const handleMusicPlay = async (track) => {
     // Gửi nhật ký về server
-    fetch('http://localhost:3002/api/log-heritage', {
+    fetch(`${API_URL}/api/log-heritage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -310,7 +309,7 @@ export default function MusicNFTStudio() {
 
   const fetchETHPrice = async () => {
     try {
-      const res = await axios.get('http://localhost:3002/api/rates/');
+      const res = await axios.get(`${API_URL}/api/rates/`);
       const price = res.data.ethereum.usd;
       setEthPriceUSD(price);
       console.log("🚀 Giá ETH mới nhất:", price, "USD");
@@ -677,7 +676,7 @@ export default function MusicNFTStudio() {
                       className="w-full h-full object-contain bg-black" />)
                   ) : (
                     <>
-                      <img src={nft.previewURL || '/placeholder.png'} alt={nft.name} loading="lazy" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500 group-hover:scale-105" />
+                      <img src={nft?.fullAudioURL?.replace('gateway.pinata.cloud', 'ipfs.io') || '/placeholder.png'} alt={nft.name} loading="lazy" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500 group-hover:scale-105" />
                       <div className="absolute inset-0 flex items-center justify-center">
                         <div className="bg-white/10 backdrop-blur-md p-6 rounded-full border border-white/20 transform transition group-hover:scale-110 shadow-2xl" > <span className="text-2xl">▶️</span> </div>
                       </div>
