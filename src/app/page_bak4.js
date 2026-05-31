@@ -5,9 +5,8 @@ import { ethers } from 'ethers';
 import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
 import emailjs from '@emailjs/browser';
-import CryptoTable from '../components/CryptoTable';
 import { useEffect, useState } from 'react';
-//import './style.css'; // Import trực tiếp file css vừa tạo
+import DeployAndMint from './../../../../music-nft-studio/src/app/page'; // Import trực tiếp file css vừa tạo
 
 
 let currentAudio = null;
@@ -26,6 +25,32 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 const MY_BANK = "BIDV";
 const MY_ACCOUNT = "3120464627";
 const API_BASE = 'https://crypto-api-6qmy.onrender.com';
+
+export const getEthPrice = async () => {
+  try {
+    const res = await fetch(`${API_BASE}/api/eth-price`);
+    const text = await res.text();
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${text}`);
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch (err) {
+      console.error('Không phải JSON:', text);
+      throw new Error('Server không trả JSON');
+    }
+  } catch (error) {
+    console.error('Lỗi lấy giá ETH:', error.message);
+    return null;
+  }
+};
+
+// Sử dụng:
+getEthPrice().then(data => {
+  if (data) console.log(data);
+});
 
 export default function MusicNFTStudio() {
   const [currentTrack, setCurrentTrack] = useState(null);
@@ -50,108 +75,7 @@ export default function MusicNFTStudio() {
   const [isConnected, setIsConnected] = useState(false);
   const [rates, setRates] = useState({ eth: "3,150.00", vnd: "25,400.00" });
   const [lastUpdated, setLastUpdated] = useState("Đang kết nối...");
-  const [isFullVersion, setIsFullVersion] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [audioSource, setAudioSource] = useState("");
-  const [ratesChannel, setRatesChannel] = useState(null);
 
-  async function handleRequestFullAudio(nft) {
-
-    if (!window.ethereum) {
-      return alert("Vui lòng cài đặt ví MetaMask để xác thực quyền sở hữu!");
-    }
-    setLoading(true);
-
-    // 1. Kết nối và lấy thông tin ví người dùng
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const signer = await provider.getSigner();
-    const userWallet = await signer.getAddress(); // Đổi tên ở đây
-
-    // 2. Tạo thông điệp ký bảo mật (kèm timestamp chống tấn công phát lại)
-    const timestamp = Date.now();
-    const message = `Xac thuc quyen so huu NFT de mo khoa ban Full.\nToken ID: ${nft.tokenId}\nVí: ${walletAddress}\nThời gian: ${timestamp}`;
-
-    // 3. Yêu cầu ký số (Không tốn gas)
-    const signature = await signer.signMessage(message);
-
-    // 3. Gửi lên Server Render (Sửa walletAddress thành userWallet)
-    const RENDER_BACKEND_URL = "https://crypto-api-backend-2url.onrender.com";
-    const response = await fetch(`${RENDER_BACKEND_URL}/api/access-full-content`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        walletAddress: userWallet, // Truyền biến userWallet vào đây
-        signature,
-        message,
-        token_id: String(""),
-        item_id: String("")
-      })
-    });
-
-    // 1. Tiếp nhận luồng dữ liệu nhị phân (Blob Stream) an toàn từ server
-    const audioBlob = await response.blob();
-
-    // Kiểm tra nếu dung lượng Blob tải về quá nhỏ (hỏng file ngầm)
-    if (audioBlob.size < 100) {
-      return alert("⚠️ Lỗi: Server trả về tệp trống hoặc link gốc bị hỏng.");
-    }
-    setLoading(false);
-
-    const secureAudioUrl = URL.createObjectURL(audioBlob);
-
-    // 2. Cập nhật nguồn phát mới và giải phóng giao diện xoay chờ
-    setAudioSource(secureAudioUrl);
-    setIsFullVersion(true);
-    setLoading(false); // ✅ QUAN TRỌNG: Tắt trạng thái "Đang xác thực ví..." ở đây!
-
-    alert("🎉 Xác thực sở hữu ví thành công! Đang kích hoạt phát bản FULL...");
-
-    // 3. Ép trình phát nhạc nạp lại đĩa từ bộ nhớ tạm Blob vừa tạo
-    setTimeout(() => {
-
-      // Hãy đảm bảo ID của thẻ audio trùng khớp với ID bạn đặt dưới phần return
-      const audioElement = document.getElementById(`audio-player-${item.id}`);
-      if (audioElement) {
-        audioElement.load();  // Nạp nguồn nhạc mới
-        audioElement.play().catch(e => {
-          console.log("Trình duyệt chặn tự động phát, người dùng cần bấm nút Play:", e.message);
-        });
-      }
-    }, 300);
-  };
-  const getEthPrice = async () => {
-    try {
-      const res = await fetch(`https://${API_BASE}/api/eth-price`);
-      const text = await res.text();
-
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${text}`);
-      }
-
-      try {
-        return JSON.parse(text);
-      } catch (err) {
-        console.error('Không phải JSON:', text);
-        throw new Error('Server không trả JSON');
-      }
-    } catch (error) {
-      console.error('Lỗi lấy giá ETH:', error.message);
-      return null;
-    }
-  };
-  // Sử dụng:
-  getEthPrice().then(data => {
-    if (data) console.log(data);
-  })
-
-
-
-  function NFTCard({ item }) {
-    const [loading, setLoading] = useState(false);
-    const [audioSource, setAudioSource] = useState(item.previewURL); // Mặc định chạy bản Preview
-    const [isFullVersion, setIsFullVersion] = useState(false);
-
-  }
 
   {/* ĐOẠN Ổ KHÓA (DÁN ĐÈ LÊN GIỮA HAI DÒNG CHỮ NÀY) */ }
   // -------------------------------------------------------------
@@ -174,57 +98,14 @@ export default function MusicNFTStudio() {
       return { hasAccess: false, reason: "GUEST" };
     }
     const currentWallet = userWalletAddress.toLowerCase();
-    const creatorWallet = nftObject.creator_address?.toLowerCase();
-    const ownerWallet = nftObject.owner_address?.toLowerCase();
+    const creatorWallet = nftObject.creator_wallet_address?.toLowerCase();
+    const ownerWallet = nftObject.owner_wallet_address?.toLowerCase();
 
     if (currentWallet === creatorWallet) return { hasAccess: true, reason: "CREATOR" };
     if (currentWallet === ownerWallet) return { hasAccess: true, reason: "OWNER" };
 
     return { hasAccess: false, reason: "NO_RIGHTS" };
   }
-
-  // Tự động mở khóa quyền âm thanh hệ thống ngay từ cú tương tác đầu tiên của người dùng
-  useEffect(() => {
-    // ĐỊNH NGHĨA HÀM TRỰC TIẾP BÊN TRONG USEEFFECT ĐỂ TRÁNH LỖI PHẠM VI (SCOPE)
-    const unlockAudioContext = () => {
-      try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (AudioContextClass) {
-          const audioCtx = new AudioContextClass();
-          if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-          }
-        }
-        console.log("🔓 [Hệ thống] Đã mở khóa âm thanh thành công từ tương tác đầu tiên!");
-      } catch (error) {
-        console.error("Không thể mở khóa AudioContext:", error);
-      } finally {
-        // Hủy bỏ lắng nghe sự kiện ngay sau khi đã kích hoạt thành công
-        window.removeEventListener('click', handleFirstUserInteraction);
-        window.removeEventListener('touchstart', handleFirstUserInteraction);
-        window.removeEventListener('scroll', handleFirstUserInteraction);
-      };
-    }
-  }, []);
-
-  useEffect(() => {
-    // Hàm trung gian xử lý sự kiện
-    const handleFirstUserInteraction = () => {
-      unlockAudioContext();
-    };
-
-    // Lắng nghe tất cả các hành động tương tác phổ biến của người dùng
-    window.addEventListener('click', handleFirstUserInteraction);
-    window.addEventListener('touchstart', handleFirstUserInteraction); // Dành cho điện thoại
-    window.addEventListener('scroll', handleFirstUserInteraction);     // Dành cho hành động cuộn trang
-
-    // Hàm dọn dẹp (cleanup) khi hợp phần bị hủy
-    return () => {
-      window.removeEventListener('click', handleFirstUserInteraction);
-      window.removeEventListener('touchstart', handleFirstUserInteraction);
-      window.removeEventListener('scroll', handleFirstUserInteraction);
-    };
-  }, []);
 
 
   useEffect(() => {
@@ -240,8 +121,7 @@ export default function MusicNFTStudio() {
         updateRatesState(data);
       }
     };
-  }, []);
-  useEffect(() => {
+
     // Hàm phụ để Format định dạng số hiển thị ra màn hình
     const updateRatesState = (data) => {
       setRates({
@@ -250,19 +130,18 @@ export default function MusicNFTStudio() {
       });
       const now = new Date(data.updated_at).toLocaleTimeString('vi-VN');
       setLastUpdated(now);
-      fetchInitialRates();
     };
-  }, []);
 
-  useEffect(() => {
+    fetchInitialRates();
+
     // 2. KÍCH HOẠT LẮNG NGHE REALTIME: Cứ bảng 'crypto_rates' có UPDATE là cập nhật giao diện lập tức
     const ratesChannel = supabase
       .channel('realtime-rates')
       .on(
-        'postgres_changes', // Tham số đầu tiên bắt buộc phải là chuỗi này
-        { event: 'UPDATE', schema: 'public', table: 'rates' }, // Điền tên bảng của bạn thay cho 'rates' nếu khác
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'crypto_rates' },
         (payload) => {
-          console.log('Dữ liệu thay đổi:', payload);
+          console.log('Nhận dữ liệu Realtime mới từ Supabase:', payload.new);
           updateRatesState(payload.new);
         }
       )
@@ -272,7 +151,10 @@ export default function MusicNFTStudio() {
     return () => {
       supabase.removeChannel(ratesChannel);
     };
-  }, []); // Đảm bảo có mảng phụ thuộc trống [] ở đây
+  }, []);
+
+
+
 
   // 2. LẤY DANH SÁCH NFT TỪ SUPABASE
   useEffect(() => {
@@ -285,6 +167,7 @@ export default function MusicNFTStudio() {
   useEffect(() => {
 
   }, []);
+
 
   // -------------------------------------------------------------
   // TẦNG 3: CÁC HÀM XỬ LÝ SỰ KIỆN (FUNCTIONS)
@@ -329,36 +212,39 @@ export default function MusicNFTStudio() {
     const { data } = await supabase.from('items').select('*').eq("is_hidden", false).order('created_at', { ascending: false });
     setNfts(data || []);
   };
-
   // 3. KẾT NỐI VÍ METAMASK
-  const connectWallet = async () => {
-    if (typeof window.ethereum !== 'undefined') {
-      try {
-        // 1. Yêu cầu kết nối ví MetaMask
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        const address = accounts[0];
+  async function connectWallet() {
+    // LỚP BẺ KHÓA: Cưỡng ép trình duyệt quét tìm cửa sổ MetaMask toàn cục
+    if (typeof window !== 'undefined') {
+      const provider = window.ethereum || (window.ethereumProviders && window.ethereumProviders.find(p => p.isMetaMask));
 
-        // 2. Rút gọn địa chỉ ví để hiển thị đẹp (ví dụ: 0x1234...abcd)
-        const shortenedAddress = `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
-        setUserAddress(shortenedAddress);
-        setWalletAddress(address);
+      if (provider) {
+        try {
+          console.log("-> Đang cưỡng ép MetaMask hiển thị bảng chọn tài khoản...");
 
-        // 3. Ghi nhận email/ví vào hệ thống
-        setAuthEmail(address);
-        console.log("💎 Đã kết nối ví:", address);
-      } catch (err) {
-        console.error("Lỗi kết nối ví:", err);
+          // Sử dụng hàm eth_requestAccounts đời đầu để ép ví phải nhảy lên màn hình
+          const accounts = await provider.request({ method: 'eth_requestAccounts' });
+
+          if (accounts && accounts.length > 0) {
+            setWalletAddress(accounts[0].toLowerCase().trim());
+            setIsConnected(true);
+
+            // Ép nạp lại trang để đồng bộ dữ liệu ví SALEBOT vào kho nhạc
+            window.location.reload();
+          }
+        } catch (error) {
+          console.error("Người dùng hủy ký ví:", error);
+          alert("Bạn đã hủy yêu cầu kết nối ví!");
+        }
+      } else {
+        // TRƯỜNG HỢP CỨU HỘ KHẨN CẤP: Nếu trình duyệt chặn quá sâu làm mù code JS, tự động chuyển Session ngầm để bạn vào nhà
+        console.log("-> Kích hoạt chế độ cứu hộ Session ngầm...");
+        setWalletAddress("0x016bb...73c88"); // Tự động gán ví SALEBOT của bạn để mở khóa giao diện
+        setIsConnected(true);
       }
-    } else {
-      alert("Vui lòng cài đặt MetaMask để dùng tính năng này!");
-      // TRƯỜNG HỢP CỨU HỘ KHẨN CẤP: Nếu trình duyệt chặn quá sâu làm mù code JS, tự động chuyển Session ngầm để bạn vào nhà
-      console.log("-> Kích hoạt chế độ cứu hộ Session ngầm...");
-      setWalletAddress("0x016bb...73c88"); // Tự động gán ví SALEBOT của bạn để mở khóa giao diện
-      setIsConnected(true);
-
     }
+  }
 
-  };
 
   const fixIPFS = (url) => {
     if (!url) return "";
@@ -505,25 +391,19 @@ export default function MusicNFTStudio() {
       }
 
       // Giám sát thời gian thực của CHÍNH cái player hiển thị trên màn hình
-      // 1. SỬA CHỮU HOA THÀNH CHỮ THƯỜNG: ontimeupdate
-      localAudio.ontimeupdate = function () {
-        // Tính thời gian còn lại (Đếm ngược từ 45 giây)
+      localAudio.onTimeUpdate = function () {
         const timeLeft = Math.max(0, Math.ceil(45 - localAudio.currentTime));
-
-        // Cập nhật số giây nhảy trên màn hình
-        if (circleBox && localAudio.currentTime < 45) {
-          circleBox.innerHTML = timeLeft;
-        }
+        if (circleBox) circleBox.innerHTML = timeLeft;
 
         // KHÓA CỨNG Ở GIÂY 45
         if (localAudio.currentTime >= 45) {
           localAudio.pause();
           localAudio.currentTime = 45; // Khóa chặt không cho nghe tiếp
-          localAudio.ontimeupdate = null; // Tắt bộ đếm để tránh lặp vô hạn
+          localAudio.ontimeupdate = null; // Tắt bộ đếm
 
           if (banner && circleBox && bTitle && bDesc) {
             banner.style.borderColor = '#ef4444';
-            circleBox.innerHTML = 'X';
+            circleBox.innerHTML = '✕';
             circleBox.style.borderColor = '#ef4444';
             circleBox.style.color = '#ef4444';
             bTitle.innerHTML = 'Hết thời gian nghe thử!';
@@ -536,6 +416,7 @@ export default function MusicNFTStudio() {
       console.log("✅ Chính chủ xác thực thành công. Player đã được mở khóa toàn bộ tính năng!");
     }
   }
+
   // Hàm xử lý khi RÊ CHUỘT RA NGOÀI CARD
   function stopPreview(cardElement) {
     const localAudio = cardElement.querySelector('audio');
@@ -550,332 +431,576 @@ export default function MusicNFTStudio() {
   return (
 
     <div className="min-h-screen bg-slate-950 text-slate-200 p-4 md:p-10 font-sans">
-      <style dangerouslySetInnerHTML={{ __html: `audio, audio::-webkit-media-controls-enclosure, audio::-webkit-media-controls-panel { display: none !important; visibility: hidden !important; opacity: 0 !important; height: 0px !important; width: 0px !important; max-height: 0px !important; max-width: 0px !important; position: absolute !important; top: -9999px !important; left: -9999px !important; pointer-events: none !important; }` }} />
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+          audio,
+          audio::-webkit-media-controls-enclosure,
+          audio::-webkit-media-controls-panel {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            height: 0px !important;
+            width: 0px !important;
+            max-height: 0px !important;
+            max-width: 0px !important;
+            position: absolute !important;
+            top: -9999px !important;
+            left: -9999px !important;
+            pointer-events: none !important;
+          }
+        `
+        }}
+      />
+
       <div className="max-w-7xl mx-auto">
 
-        {/* HEADER SECTION */}
-        <header className="flex flex-col md:flex-row justify-between nfts-center mb-12 gap-6 bg-slate-900/50 p-6 rounded-3xl border border-slate-800">
+        {/* HEADER */}
+        <header className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6 bg-slate-900/50 p-6 rounded-3xl border border-slate-800">
           <div>
-            <h1 className="text-3xl font-black italic tracking-tighter text-white uppercase">Manh Hung Marketplace</h1>
-            <p className="text-slate-500 text-xs mt-1 uppercase tracking-widest">Decentralized Music NFT Store</p>
+            <h1 className="text-3xl font-black italic tracking-tighter text-white uppercase">
+              Manh Hung Marketplace
+            </h1>
+
+            <p className="text-slate-500 text-xs mt-1 uppercase tracking-widest">
+              Decentralized Music NFT Store
+            </p>
           </div>
+
           {!walletAddress ? (
-            <button onClick={connectWallet} className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-2xl font-black transition-all shadow-lg shadow-blue-900/20 active:scale-95">KẾT NỐI VÍ 🦊</button>
+            <button
+              onClick={connectWallet}
+              className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-2xl font-black transition-all shadow-lg shadow-blue-900/20 active:scale-95"
+            >
+              KẾT NỐI VÍ 🦊
+            </button>
           ) : (
             <div className="bg-slate-800 px-4 py-2 rounded-xl border border-blue-500/30">
-              <span className="text-[10px] text-blue-400 block font-bold uppercase mb-1">Ví đã kết nối:</span>
-              <span className="font-mono text-xs text-white">{walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</span>
+              <span className="text-[10px] text-blue-400 block font-bold uppercase mb-1">
+                Ví đã kết nối:
+              </span>
+
+              <span className="font-mono text-xs text-white">
+                {walletAddress.slice(0, 6)}...
+                {walletAddress.slice(-4)}
+              </span>
             </div>
           )}
         </header>
-        {/* NAVBAR PHIÊN BẢN SANG TRỌNG */}
-        <nav style={styles.navbar}>
-          <div style={styles.navLogo}>HÙNG LOUIS <span style={{ color: '#f0f0f7' }}>STUDIO</span></div>
 
-          {/*HỘP TỈ GIÁ CRYPTO*/}
-          <div style={{
-            padding: '15px',
-            background: '#1a1a1a',
-            border: '1px solid #333',
-            borderRadius: '8px',
-            color: '#fff',
-            fontFamily: 'monospace',
-            maxWidth: '350px',
-            margin: '5px 0'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
-              {/* Đèn tín hiệu nhấp nháy màu xanh khi có dữ liệu */}
-              <span style={{
-                height: '10px',
-                width: '10px',
-                backgroundColor: lastUpdated ? '#00ff00' : '#ff0000',
-                borderRadius: '50%',
-                display: 'inline-block',
-                marginRight: '8px',
-                boxShadow: lastUpdated ? '0 0 8px #00ff00' : 'none'
-              }}></span>
-              <b style={{ fontSize: '14px', color: '#00ff00' }}>BINANCE REALTIME RATES</b>
+        {/* NAVBAR */}
+        <nav style={styles.navbar}>
+
+          <div style={styles.navLogo}>
+            HÙNG LOUIS
+            <span style={{ color: '#f0f0f7' }}> STUDIO</span>
+          </div>
+
+          {/* HỘP TỈ GIÁ */}
+          <div
+            style={{
+              padding: '15px',
+              background: '#1a1a1a',
+              border: '1px solid #333',
+              borderRadius: '8px',
+              color: '#fff',
+              fontFamily: 'monospace',
+              maxWidth: '350px',
+              margin: '5px 0'
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                marginBottom: '5px'
+              }}
+            >
+              <span
+                style={{
+                  height: '10px',
+                  width: '10px',
+                  backgroundColor: lastUpdated ? '#00ff00' : '#ff0000',
+                  borderRadius: '50%',
+                  display: 'inline-block',
+                  marginRight: '8px',
+                  boxShadow: lastUpdated ? '0 0 8px #00ff00' : 'none'
+                }}
+              ></span>
+
+              <b style={{ fontSize: '14px', color: '#00ff00' }}>
+                BINANCE REALTIME RATES
+              </b>
             </div>
 
             <div style={{ fontSize: '13px', lineHeight: '1.6' }}>
               <p>🔹 <b>ETH/USDT:</b> ${rates.eth}</p>
               <p>🔹 <b>USDT/VND:</b> {rates.vnd} đ</p>
-              <p>🔹 <b>Cập nhật cuối:</b> <span style={{ color: '#ffea00' }}>{lastUpdated}</span></p>
+              <p>
+                🔹 <b>Cập nhật cuối:</b>
+                <span style={{ color: '#ffea00' }}>
+                  {lastUpdated}
+                </span>
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+            <div style={styles.visitBadge}>
+              👁️ {totalVisits.toLocaleString()} lượt ghé thăm
             </div>
 
-          </div>
-          <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-            <div style={styles.visitBadge}>👁️ {totalVisits.toLocaleString()} lượt ghé thăm</div>
             <button style={styles.btnNav} onClick={connectWallet}>
-              {userAddress ? `🦊 ${userAddress}` : (authEmail ? `👤 ${authEmail.substring(0, 8)}...` : '🔗 Kết nối Ví')}
+              {userAddress
+                ? `🦊 ${userAddress}`
+                : authEmail
+                  ? `👤 ${authEmail.substring(0, 8)}...`
+                  : '🔗 Kết nối Ví'}
             </button>
 
-            <button style={styles.btnNav} onClick={() => setShowAuthModal(true)}>
-              {authEmail ? `👤 ${authEmail.substring(0, 8)}...` : '📧 Đăng nhập'}
+            <button
+              style={styles.btnNav}
+              onClick={() => setShowAuthModal(true)}
+            >
+              {authEmail
+                ? `👤 ${authEmail.substring(0, 8)}...`
+                : '📧 Đăng nhập'}
             </button>
           </div>
         </nav>
 
-
-
-
-        {/* SHOWROOM SECTION */}
+        {/* NFT GRID */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {nfts.map((nft) => (
-            <div key={nft.id} className="bg-slate-900 rounded-[2.5rem] overflow-hidden border border-slate-800 shadow-2xl transition hover:border-blue-600 group">
-              {/* MEDIA VIEW: CLICK TO PLAY */}
-              <div className="nft-card border p-4 rounded-xl bg-slate-900 text-white">
-                {/* 1. Tiêu đề & Trạng thái bản nhạc */}
-                <h3 className="text-xl font-bold">{nft.name}</h3>
-                <p className="text-sm text-gray-400">
-                  Trạng thái: {isFullVersion ? "🟢 Đang phát bản FULL" : "🟡 Đang phát bản Preview (Thử nghiệm)"}
-                </p>
-                <div
-                  className="music-card group relative h-72 cursor-pointer overflow-hidden bg-black"
-                  data-audio={nft.fullAudioURL}
-                  data-owner={nft.owner_address} // <-- BẮT BUỘC PHẢI CÓ DÒNG NÀY
-                  onMouseEnter={(e) => playPreview(e.currentTarget)}
-                  onMouseLeave={(e) => stopPreview(e.currentTarget)}
-                  onClick={() => { if (playingId !== nft.id) { setCurrentTrack(nft); setPlayingId(nft.id); } }} >
-                  {playingId === nft.id ? (
-                    nft.fullAudioURL?.includes(".mp3") ? (
-                      <audio
-                        id={`audio-player-${nft.id}`}
-                        muted={false} // 🌟 Bắt buộc phải có dòng này để phá vỡ lệnh cấm của trình duyệt
-                        loop={true}  // Giúp nhạc lặp lại mượt mà khi hover liên tục
-                        src={nft.previewURL}
-                        onTimeUpdate={(e) => {
-                          const audioEl = e.currentTarget;
-                          const isChinhChu = checkIsChinhChu(currentTrack);
-                          if (!isChinhChu && audioEl.currentTime >= 45) {
-                            // 1. Khóa cứng và dừng nhạc ngay lập tức
-                            audioEl.pause();
-                            audioEl.currentTime = 45;
-                            // 2. Tắt trạng thái đang phát trên giao diện
-                            setPlayingId(null);
-                            // 3. Hiển thị thông báo bản quyền (Có thể gọi bảng banner đếm ngược đổi sang màu đỏ)
-                            const banner = document.getElementById('copyright-timer-banner');
-                            const circleBox = document.getElementById('timer-circle-box');
-                            const bTitle = document.getElementById('timer-banner-title');
-                            const bDesc = document.getElementById('timer-banner-desc');
-                            if (banner && circleBox && bTitle && bDesc) { banner.style.display = 'block'; banner.style.borderColor = '#ef4444'; circleBox.innerHTML = '✕'; circleBox.style.borderColor = '#ef4444'; circleBox.style.color = '#ef4444'; bTitle.innerHTML = 'Giới hạn bản quyền 45 giây!'; bDesc.innerHTML = isConnected ? 'Ví của bạn không sở hữu vật phẩm này. Vui lòng mua NFT để nghe trọn vẹn.' : 'Vui lòng kết nối ví <b>Chính chủ</b> để nghe toàn bộ bài hát.'; }
-                          }
-                        }}
-                        autoPlay src={fixIPFS(nft.previewURL)} className="w-full" controls />
-                    ) : (<video src={nft.previewURL} autoPlay controls playsInline preload="metadata"
-                      className="w-full h-full object-contain bg-black" />)
-                  ) : (
-                    <>
-                      <img src={nft.previewURL || '/placeholder.png'} alt={nft.name} loading="lazy" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500 group-hover:scale-105" />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="bg-white/10 backdrop-blur-md p-6 rounded-full border border-white/20 transform transition group-hover:scale-110 shadow-2xl" > <span className="text-2xl">▶️</span> </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-                {/* 3. Khu vực tương tác nút bấm */}
-                <div className="flex gap-2">
-                  {!isFullVersion && (
-                    <button
-                      onClick={() => handleRequestFullAudio(nft)}
-                      disabled={loading}
-                      className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-2 px-4 rounded-lg disabled:opacity-50 transition-all"
-                    >
-                      {loading ? "⌛ Đang xác thực ví..." : "🔒 Nghe Bản FULL (Creator/Owner)"}
-                    </button>
-                  )}
 
-                  {isFullVersion && (
-                    <button
-                      onClick={() => {
-                        setAudioSource(nft.previewURL);
-                        setIsFullVersion(false);
+          {nfts.map((nft) => (
+
+            <div
+              key={nft.id}
+              className="bg-slate-900 rounded-[2.5rem] overflow-hidden border border-slate-800 shadow-2xl transition hover:border-blue-600 group"
+            >
+
+              {/* MEDIA */}
+              <div
+                className="card-nft"
+                style={{
+                  position: 'relative',
+                  cursor: 'pointer'
+                }}
+
+                data-audio={nft.audio_url}
+                data-owner={nft.owner_wallet_address}
+                data-creator={nft.creator_wallet_address}
+
+                onMouseEnter={(e) => {
+                  if (typeof playPreview === 'function') {
+                    playPreview(e.currentTarget);
+                  }
+                }}
+
+                onMouseLeave={(e) => {
+                  if (typeof stopPreview === 'function') {
+                    stopPreview(e.currentTarget);
+                  }
+                }}
+
+                onClick={(e) => {
+                  e.stopPropagation();
+
+                  const localAudio =
+                    e.currentTarget.querySelector('audio');
+
+                  if (!localAudio) return;
+
+                  if (playingId !== nft.id) {
+                    setCurrentTrack(nft);
+                    setPlayingId(nft.id);
+                  }
+
+                  if (currentActiveAudio !== localAudio) {
+
+                    if (typeof playPreview === 'function') {
+                      playPreview(e.currentTarget);
+                    }
+
+                  } else {
+
+                    if (localAudio.paused) {
+
+                      localAudio.play().catch(err => console.log(err));
+                      setPlayingId(nft.id);
+
+                    } else {
+
+                      localAudio.pause();
+                      setPlayingId(null);
+
+                    }
+                  }
+                }}
+              >
+
+                {playingId === nft.id ? (
+
+                  nft.audio_url?.includes(".mp3") ? (
+
+                    <audio
+                      ref={mainAudioRef}
+                      src={fixIPFS(nft.audio_url)}
+                      autoPlay
+                      className="w-full hidden"
+
+                      onTimeUpdate={(e) => {
+
+                        const audioEl = e.currentTarget;
+
+                        const isChinhChu =
+                          checkIsChinhChu(currentTrack);
+
+                        if (
+                          !isChinhChu &&
+                          audioEl.currentTime >= 45
+                        ) {
+
+                          audioEl.pause();
+                          audioEl.currentTime = 45;
+
+                          setPlayingId(null);
+
+                          const banner =
+                            document.getElementById(
+                              'copyright-timer-banner'
+                            );
+
+                          const circleBox =
+                            document.getElementById(
+                              'timer-circle-box'
+                            );
+
+                          const bTitle =
+                            document.getElementById(
+                              'timer-banner-title'
+                            );
+
+                          const bDesc =
+                            document.getElementById(
+                              'timer-banner-desc'
+                            );
+
+                          if (
+                            banner &&
+                            circleBox &&
+                            bTitle &&
+                            bDesc
+                          ) {
+
+                            banner.style.display = 'block';
+                            banner.style.borderColor = '#ef4444';
+
+                            circleBox.innerHTML = '✕';
+
+                            circleBox.style.borderColor =
+                              '#ef4444';
+
+                            circleBox.style.color =
+                              '#ef4444';
+
+                            bTitle.innerHTML =
+                              'Giới hạn bản quyền 45 giây!';
+
+                            bDesc.innerHTML = isConnected
+                              ? 'Ví của bạn không sở hữu vật phẩm này.'
+                              : 'Vui lòng kết nối ví Chính chủ.';
+                          }
+                        }
                       }}
-                      className="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-all"
-                    >
-                      Quay lại bản Preview
-                    </button>
-                  )}
-                </div>
+
+                      onPause={() => {
+
+                        const banner =
+                          document.getElementById(
+                            'copyright-timer-banner'
+                          );
+
+                        if (banner) {
+                          banner.style.display = 'none';
+                        }
+                      }}
+                    />
+
+                  ) : (
+
+                    <video
+                      src={nft.image_url}
+                      autoPlay
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className="w-full h-full object-contain bg-black"
+                    />
+
+                  )
+
+                ) : (
+
+                  <>
+                    <img
+                      src={nft.image_url || "/placeholder.jpg"}
+                      alt={nft.name}
+                      loading="lazy"
+                      className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500 group-hover:scale-105"
+                    />
+
+                    <div className="absolute inset-0 flex items-center justify-center">
+
+                      <div className="bg-white/10 backdrop-blur-md p-6 rounded-full border border-white/20 transform transition group-hover:scale-110 shadow-2xl">
+                        <span className="text-2xl">▶️</span>
+                      </div>
+
+                    </div>
+                  </>
+                )}
               </div>
 
+              {/* CONTENT */}
+              <div className="p-7 space-y-5">
 
+                <h3 className="text-xl font-black text-white">
+                  {nft.name}
+                </h3>
 
-              {currentTrack && <audio src={fixIPFS(nft.fullAudioURL)} controls />}
+                {/* PRICES */}
+                <div className="grid grid-cols-3 gap-2">
 
-              < div className="p-7 space-y-5" >
-                <h3 className="text-xl font-black text-white">{nft.name}</h3>
-                {/* REALTIME RATES */}
-                < div className="grid grid-cols-3 gap-2" >
-                  {/* MATIC */}
-                  < div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center" > <span className="block text-[8px] text-slate-500 font-bold uppercase mb-1"> ETH </span> <span className="text-[10px] font-black text-orange-400"> {(nft.price * 1 * 1).toFixed(4)} </span> </div>
-                  {/* USD */}
-                  <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center"> <span className="block text-[8px] text-slate-500 font-bold uppercase mb-1"> USD </span> <span className="text-[10px] font-black text-blue-400"> ${(nft.price * (rates?.ETH || 0)).toFixed(2)} </span> </div>
-                  {/* VND */}
-                  <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center"> <span className="block text-[8px] text-slate-500 font-bold uppercase mb-1"> VND </span> <span className="text-[10px] font-black text-green-400"> {(nft.price * (rates?.ETH || 0) * (rates?.VND || 0)).toLocaleString()} ₫ </span> </div>
+                  <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center">
+                    <span className="block text-[8px] text-slate-500 font-bold uppercase mb-1">
+                      ETH
+                    </span>
+
+                    <span className="text-[10px] font-black text-orange-400">
+                      {(nft.price * 1).toFixed(4)}
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center">
+                    <span className="block text-[8px] text-slate-500 font-bold uppercase mb-1">
+                      USD
+                    </span>
+
+                    <span className="text-[10px] font-black text-blue-400">
+                      ${(nft.price * (rates?.ETH || 0)).toFixed(2)}
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-center">
+                    <span className="block text-[8px] text-slate-500 font-bold uppercase mb-1">
+                      VND
+                    </span>
+
+                    <span className="text-[10px] font-black text-green-400">
+                      {(
+                        nft.price *
+                        (rates?.ETH || 0) *
+                        (rates?.VND || 0)
+                      ).toLocaleString()} ₫
+                    </span>
+                  </div>
                 </div>
+
                 {/* FOOTER */}
                 <div style={styles.cardFooter}>
-                  <span style={{ color: '#6366f1', fontWeight: 'bold' }}>{nft.price} ETH </span>
-                  {nft.is_listed ? (<button style={styles.btnBuy} onClick={() => handleVietQR(nft)}>🏦 Mua VNĐ</button>) : (<button style={styles.btnOffer}>🤝 Đề nghị</button>)}
+
+                  <span
+                    style={{
+                      color: '#6366f1',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    {nft.price} ETH
+                  </span>
+
+                  {nft.is_listed ? (
+
+                    <button
+                      style={styles.btnBuy}
+                      onClick={() => handleVietQR(nft)}
+                    >
+                      🏦 Mua VNĐ
+                    </button>
+
+                  ) : (
+
+                    <button style={styles.btnOffer}>
+                      🤝 Đề nghị
+                    </button>
+
+                  )}
                 </div>
-                {/* BUY BUTTON */}
+
+                {/* BUY */}
                 <button
                   onClick={() => handleBuy(nft)}
                   className="w-full py-4 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-orange-950/20 transition-all active:scale-95"
                 >
                   MUA NFT NGAY
                 </button>
+
               </div>
             </div>
-
           ))}
+        </div>
 
-          {/* --- MODAL THANH TOÁN QR --- */}
+        {/* MODAL QR */}
+        {isPending && selectednft && (
 
-          {isPending && selectednft && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-xl">
 
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-xl">
-              <div className="bg-white text-slate-900 p-8 rounded-[3rem] max-w-sm w-full relative shadow-[0_0_50px_rgba(59,130,246,0.3)]">
-                <button
-                  onClick={() => setIsPending(false)}
-                  className="absolute top-6 right-6 text-2xl font-bold text-slate-400 hover:text-black"
-                >
-                  ✕
-                </button>
-                <h2 className="text-center font-black text-xl mb-2 uppercase tracking-tight">
-                  Thanh toán đơn hàng
-                </h2>
-                <p className="text-center text-[10px] text-slate-400 font-bold uppercase mb-8 italic tracking-widest">
-                  Vui lòng quét mã QR để thanh toán
-                </p>
-                {/* QR */}
-                <div className="bg-slate-100 p-4 rounded-[2rem] mb-6 flex justify-center border-2 border-dashed border-slate-300">
-                  <img
-                    src={`https://sepay.vn/img?acc=${MY_ACCOUNT}&template=compact&amount=${(selectednft?.price || 0) *
-                      (rates?.MATIC || 0) *
-                      (rates?.VND || 0)
-                      }`}
-                    className="w-64 h-64 mix-blend-multiply"
-                    alt="VietQR"
-                  />
-                </div>
+            <div className="bg-white text-slate-900 p-8 rounded-[3rem] max-w-sm w-full relative">
 
-                {/* PRICE */}
-                <div className="flex justify-between items-center pt-2 border-t border-slate-200">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase"> Số tiền: </span>
-                  <span className="font-black text-red-600 text-lg"> {((selectednft?.price || 0) * (rates?.MATIC || 0) * (rates?.VND || 0)).toLocaleString()} ₫ </span>
-                </div>
+              <button
+                onClick={() => setIsPending(false)}
+                className="absolute top-6 right-6 text-2xl font-bold"
+              >
+                ✕
+              </button>
 
-                {/* WAITING */}
-                <div className="mt-8 flex items-center justify-center gap-3">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic text-center">
-                    Hệ thống đang chờ thanh toán...
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+              <h2 className="text-center font-black text-xl mb-2 uppercase">
+                Thanh toán đơn hàng
+              </h2>
 
-          <footer className="mt-20 text-center py-10 border-t border-slate-900">
-            <p className="text-[10px] text-slate-600 font-bold uppercase tracking-[10px]">
-              Manh Hung Marketplace • 2026
-            </p>
-          </footer>
+              <div className="bg-slate-100 p-4 rounded-[2rem] mb-6 flex justify-center">
 
-          {isLocked && (
-
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-xl">
-
-              <div className="bg-[#121212] border border-cyan-500/30 p-10 rounded-[3rem] text-center max-w-sm shadow-[0_0_50px_rgba(0,255,255,0.2)]">
-
-                <div className="text-5xl mb-6 text-cyan-400">
-                  🔒
-                </div>
-
-                <h2 className="text-cyan-400 font-black text-2xl mb-4 uppercase">
-                  Di sản được bảo vệ
-                </h2>
-
-                <p className="text-gray-400 text-sm mb-8 italic px-4"> Hãy sở hữu di sản trực tiếp tại trang nhà HungLouis Music để nhận đặc quyền cao nhất. </p>
-
-                <a
-                  href="http://localhost:8080/NFTMusicmarketplace/marketplace_supabase.php"
-                  className="inline-block w-full bg-cyan-500 text-black font-black py-4 rounded-full hover:scale-105 transition uppercase tracking-tighter"
-                >
-                  💎 Mua tại HungLouis Music
-                </a>
-
-                <button onClick={() => setIsLocked(false)} className="mt-6 text-[10px] text-gray-600 uppercase tracking-widest hover:text-white" >
-                  Để sau / Close
-                </button>
-              </div>
-            </div>
-          )}
-          {/* POPUP VIETQR & LOGIN (TÁCH BIỆT) */}
-          {showQRModal && (
-            <div style={styles.modalOverlay} onClick={() => setShowQRModal(false)}>
-              <div style={styles.modalContentQR} onClick={e => e.stopPropagation()}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-                  <h3 style={{ margin: 0 }}>Thanh toán BIDV</h3>
-                  <button onClick={() => setShowQRModal(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '24px' }}>✕</button>
-                </div>
                 <img
-                  src={activeQRUrl}
-                  alt="Mã QR BIDV"
-                  style={{
-                    width: '100%',
-                    height: 'auto',
-                    borderRadius: '15px',
-                    backgroundColor: '#fff', // Nền trắng giúp QR dễ quét hơn
-                    padding: '15px',
-                    display: 'block'
-                  }}
-                  onError={(e) => {
-                    // Nếu vẫn lỗi, thử tải lại link đơn giản hơn
-                    e.target.src = `https://vietqr.io`;
-                  }}
+                  src={`https://sepay.vn/img?acc=${MY_ACCOUNT}&template=compact&amount=${(selectednft?.price || 0) *
+                    (rates?.MATIC || 0) *
+                    (rates?.VND || 0)
+                    }`}
+                  className="w-64 h-64"
+                  alt="VietQR"
                 />
-
-                <p style={{ fontSize: '12px', color: '#aaa', marginTop: '15px', textAlign: 'center' }}>Quét mã để sở hữu bản quyền NFT</p>
-                <button style={styles.btnActionPrimary} onClick={() => setShowQRModal(false)}></button>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {showAuthModal && (
-            <div style={styles.modalOverlay} onClick={() => setShowAuthModal(false)}>
-              <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
-                <h3>Đăng nhập Nghệ sĩ</h3>
-                <input style={styles.input} placeholder="Email của bạn" onChange={e => setAuthEmail(e.target.value)} />
-                <button style={styles.btnActionPrimary} onClick={() => setShowAuthModal(false)}>VÀO SÀN</button>
-              </div>
+        {/* AUTH MODAL */}
+        {showAuthModal && (
+
+          <div
+            style={styles.modalOverlay}
+            onClick={() => setShowAuthModal(false)}
+          >
+
+            <div
+              style={styles.modalContent}
+              onClick={e => e.stopPropagation()}
+            >
+
+              <h3>Đăng nhập Nghệ sĩ</h3>
+
+              <input
+                style={styles.input}
+                placeholder="Email của bạn"
+                onChange={e => setAuthEmail(e.target.value)}
+              />
+
+              <button
+                style={styles.btnActionPrimary}
+                onClick={() => setShowAuthModal(false)}
+              >
+                VÀO SÀN
+              </button>
+
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* BẢNG ĐỒNG HỒ ĐẾM NGƯỢC VÀ THÔNG BÁO (Bảo mật bản quyền) */}
-      <div id="copyright-timer-banner" style={{ display: 'none', position: 'fixed', bottom: '30px', right: '30px', zIndex: 9999, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(16px)', border: '1px solid rgba(6, 182, 212, 0.3)', borderRadius: '20px', padding: '20px', width: '320px', boxShadow: '0 20px 40px rgba(0,0,0,0.5)', fontFamily: "'Inter', sans-serif", transition: 'all 0.3s ease' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          {/* Vòng tròn đếm số */}
-          <div id="timer-circle-box" style={{ width: '50px', height: '50px', borderRadius: '50%', border: '3px solid #00ffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#00ffff', fontSize: '18px', boxShadow: '0 0 15px rgba(0,255,255,0.4)' }}>
-            45
           </div>
-          {/* Nội dung chữ */}
-          <div style={{ flexGrow: 1 }}>
-            <h4 id="timer-banner-title" style={{ margin: 0, color: '#fff', fontSize: '14px', fontWeight: 700, letterSpacing: '-0.3px' }}>Đang nghe thử bản quyền</h4>
-            <p id="timer-banner-desc" style={{ margin: '3px 0 0 0', color: 'rgba(255,255,255,0.6)', fontSize: '11px' }}>Kết nối ví để mở khóa toàn bộ tác phẩm.</p>
+        )}
+
+        {/* TIMER */}
+        <div
+          id="copyright-timer-banner"
+          style={{
+            display: 'none',
+            position: 'fixed',
+            bottom: '30px',
+            right: '30px',
+            zIndex: 9999,
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(6, 182, 212, 0.3)',
+            borderRadius: '20px',
+            padding: '20px',
+            width: '320px'
+          }}
+        >
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '15px'
+            }}
+          >
+
+            <div
+              id="timer-circle-box"
+              style={{
+                width: '50px',
+                height: '50px',
+                borderRadius: '50%',
+                border: '3px solid #00ffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 800,
+                color: '#00ffff',
+                fontSize: '18px'
+              }}
+            >
+              45
+            </div>
+
+            <div style={{ flexGrow: 1 }}>
+
+              <h4
+                id="timer-banner-title"
+                style={{
+                  margin: 0,
+                  color: '#fff',
+                  fontSize: '14px',
+                  fontWeight: 700
+                }}
+              >
+                Đang nghe thử bản quyền
+              </h4>
+
+              <p
+                id="timer-banner-desc"
+                style={{
+                  margin: '3px 0 0 0',
+                  color: 'rgba(255,255,255,0.6)',
+                  fontSize: '11px'
+                }}
+              >
+                Hệ thống giới hạn 45 giây đang kích hoạt.
+              </p>
+
+            </div>
           </div>
         </div>
-      </div>
 
+        {/* FOOTER */}
+        <footer className="mt-20 text-center py-10 border-t border-slate-900">
+
+          <p className="text-[10px] text-slate-600 font-bold uppercase tracking-[10px]">
+            Manh Hung Marketplace • 2026
+          </p>
+
+        </footer>
+
+      </div>
     </div>
-
   );
-
 }
+
 
 {/* ĐOẠN Ổ KHÓA (DÁN ĐÈ LÊN GIỮA HAIDÒNG CHỮ NÀY) */ }
 
@@ -1106,5 +1231,8 @@ const styles = {
     marginTop: '15px',
     cursor: 'pointer'
   },
+  audio: {
+    display: 'none'
+  },
 
-}
+};

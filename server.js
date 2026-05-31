@@ -1,7 +1,8 @@
+import dotenv from 'dotenv';
 import express from 'express';
 import fs from 'fs';
 import cors from 'cors';
-import dotenv from 'dotenv';
+
 
 // Khởi tạo cấu hình
 dotenv.config();
@@ -14,14 +15,14 @@ app.use(express.json());
 // 1. API Cung cấp tỉ giá (Hết lỗi 404 trên Studio)
 app.get('/api/rates', (req, res) => {
     res.json({ eth: 3500, usdt: 1, vnd: 25400 });
-// Sửa lại để khớp hoàn toàn với Studio
-app.get('/api/eth-price', (req, res) => {
-    res.json({ 
-        ethereum: { usd: 3500 }, // Studio đang tìm cái 'usd' nằm trong 'ethereum'
-        tether: { usd: 1 },
-        vnd: 25400 
+    // Sửa lại để khớp hoàn toàn với Studio
+    app.get('/api/eth-price', (req, res) => {
+        res.json({
+            ethereum: { usd: 3500 }, // Studio đang tìm cái 'usd' nằm trong 'ethereum'
+            tether: { usd: 1 },
+            vnd: 25400
+        });
     });
-});
 
 });
 
@@ -29,7 +30,7 @@ app.get('/api/eth-price', (req, res) => {
 app.post('/api/log-heritage', (req, res) => {
     const { trackName, walletAddress, timestamp } = req.body;
     const logEntry = `[${timestamp}] Ví: ${walletAddress || 'Khách vãng lai'} - Đã nghe: ${trackName}\n`;
-    
+
     fs.appendFile('nhat-ky-di-san.txt', logEntry, (err) => {
         if (err) {
             console.error("Lỗi ghi file:", err);
