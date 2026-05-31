@@ -121,7 +121,7 @@ export default function MusicNFTStudio() {
   };
   const getEthPrice = async () => {
     try {
-      const res = await fetch(`https://${API_BASE}/api/eth-price`);
+      const res = await fetch(`https://${API_BASE}/api/ethPrice`);
       const text = await res.text();
 
       if (!res.ok) {
@@ -185,7 +185,7 @@ export default function MusicNFTStudio() {
 
   // Tự động mở khóa quyền âm thanh hệ thống ngay từ cú tương tác đầu tiên của người dùng
   useEffect(() => {
-    // ĐỊNH NGHĨA HÀM TRỰC TIẾP BÊN TRONG USEEFFECT ĐỂ TRÁNH LỖI PHẠM VI (SCOPE)
+    // 1. Định nghĩa hàm mở khóa trực tiếp trong useEffect để tránh lỗi scope
     const unlockAudioContext = () => {
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -195,35 +195,29 @@ export default function MusicNFTStudio() {
             audioCtx.resume();
           }
         }
-        console.log("🔓 [Hệ thống] Đã mở khóa âm thanh thành công từ tương tác đầu tiên!");
-      } catch (error) {
-        console.error("Không thể mở khóa AudioContext:", error);
-      } finally {
-        // Hủy bỏ lắng nghe sự kiện ngay sau khi đã kích hoạt thành công
-        window.removeEventListener('click', handleFirstUserInteraction);
-        window.removeEventListener('touchstart', handleFirstUserInteraction);
-        window.removeEventListener('scroll', handleFirstUserInteraction);
-      };
+      } catch (e) {
+        console.log("Không thể khởi tạo AudioContext:", e.message);
+      }
     }
-  }, []);
 
-  useEffect(() => {
     // Hàm trung gian xử lý sự kiện
     const handleFirstUserInteraction = () => {
       unlockAudioContext();
-    };
-
-    // Lắng nghe tất cả các hành động tương tác phổ biến của người dùng
-    window.addEventListener('click', handleFirstUserInteraction);
-    window.addEventListener('touchstart', handleFirstUserInteraction); // Dành cho điện thoại
-    window.addEventListener('scroll', handleFirstUserInteraction);     // Dành cho hành động cuộn trang
-
-    // Hàm dọn dẹp (cleanup) khi hợp phần bị hủy
-    return () => {
       window.removeEventListener('click', handleFirstUserInteraction);
       window.removeEventListener('touchstart', handleFirstUserInteraction);
       window.removeEventListener('scroll', handleFirstUserInteraction);
+      // Lắng nghe tất cả các hành động tương tác phổ biến của người dùng
+      window.addEventListener('click', handleFirstUserInteraction);
+      window.addEventListener('touchstart', handleFirstUserInteraction); // Dành cho điện thoại
+      window.addEventListener('scroll', handleFirstUserInteraction);     // Dành cho hành động cuộn trang
+      // Hàm dọn dẹp (cleanup) khi hợp phần bị hủy
+      return () => {
+        window.removeEventListener('click', handleFirstUserInteraction);
+        window.removeEventListener('touchstart', handleFirstUserInteraction);
+        window.removeEventListener('scroll', handleFirstUserInteraction);
+      }
     };
+
   }, []);
 
 
@@ -572,35 +566,52 @@ export default function MusicNFTStudio() {
         <nav style={styles.navbar}>
           <div style={styles.navLogo}>HÙNG LOUIS <span style={{ color: '#f0f0f7' }}>STUDIO</span></div>
 
-          {/*HỘP TỈ GIÁ CRYPTO*/}
-          <div style={{
-            padding: '15px',
-            background: '#1a1a1a',
-            border: '1px solid #333',
-            borderRadius: '8px',
-            color: '#fff',
-            fontFamily: 'monospace',
-            maxWidth: '350px',
-            margin: '5px 0'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
-              {/* Đèn tín hiệu nhấp nháy màu xanh khi có dữ liệu */}
-              <span style={{
-                height: '10px',
-                width: '10px',
-                backgroundColor: lastUpdated ? '#00ff00' : '#ff0000',
-                borderRadius: '50%',
-                display: 'inline-block',
-                marginRight: '8px',
-                boxShadow: lastUpdated ? '0 0 8px #00ff00' : 'none'
-              }}></span>
-              <b style={{ fontSize: '14px', color: '#00ff00' }}>BINANCE REALTIME RATES</b>
+          {/* HỘP TỈ GIÁ */}
+          <div
+            style={{
+              padding: '15px',
+              background: '#1a1a1a',
+              border: '1px solid #333',
+              borderRadius: '8px',
+              color: '#fff',
+              fontFamily: 'monospace',
+              maxWidth: '350px',
+              margin: '5px 0'
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                marginBottom: '5px'
+              }}
+            >
+              <span
+                style={{
+                  height: '10px',
+                  width: '10px',
+                  backgroundColor: lastUpdated ? '#00ff00' : '#ff0000',
+                  borderRadius: '50%',
+                  display: 'inline-block',
+                  marginRight: '8px',
+                  boxShadow: lastUpdated ? '0 0 8px #00ff00' : 'none'
+                }}
+              ></span>
+
+              <b style={{ fontSize: '14px', color: '#00ff00' }}>
+                BINANCE REALTIME RATES
+              </b>
             </div>
 
             <div style={{ fontSize: '13px', lineHeight: '1.6' }}>
               <p>🔹 <b>ETH/USDT:</b> ${rates.eth}</p>
               <p>🔹 <b>USDT/VND:</b> {rates.vnd} đ</p>
-              <p>🔹 <b>Cập nhật cuối:</b> <span style={{ color: '#ffea00' }}>{lastUpdated}</span></p>
+              <p>
+                🔹 <b>Cập nhật cuối:</b>
+                <span style={{ color: '#ffea00' }}>
+                  {lastUpdated}
+                </span>
+              </p>
             </div>
 
           </div>
