@@ -3,10 +3,11 @@ import AudioPlayer from 'react-h5-audio-player';
 import 'react-h5-audio-player/lib/styles.css';
 import { ethers } from 'ethers';
 import { createClient } from '@supabase/supabase-js';
-import axios from 'axios';
+import axio from 'axios';
 import emailjs from '@emailjs/browser';
 import CryptoTable from '../components/CryptoTable';
 import { useEffect, useState } from 'react';
+
 //import './style.css'; // Import trực tiếp file css vừa tạo
 
 
@@ -17,7 +18,6 @@ let previewTimeout = null;
 
 // Hoặc nếu dùng script tag ở HTML thì thêm:
 // <script src="https://jsdelivr.net"></script>
-
 const API_URL = `https://crypto-api-backend-2url.onrender.com`;
 const supabaseUrl = "https://hmvvjjiiaelcsfqgxbxv.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtdnZqamlpYWVsY3NmcWd4Ynh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzNDg4MzcsImV4cCI6MjA4OTkyNDgzN30.zCpflfgSmBwpwe62P7cr1Ppf5dMUMjh782EhZeZ-kuw";
@@ -630,70 +630,88 @@ export default function MusicNFTStudio() {
 
 
         {/* SHOWROOM SECTION */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {nfts.map((nft) => (
-            <div key={nft.id} className="bg-slate-900 rounded-[2.5rem] overflow-hidden border border-slate-800 shadow-2xl transition hover:border-blue-600 group">
-              {/* MEDIA VIEW: CLICK TO PLAY */}
-              <div className="nft-card border p-4 rounded-xl bg-slate-900 text-white">
-                {/* 1. Tiêu đề & Trạng thái bản nhạc */}
-                <h3 className="text-xl font-bold">{nft.name}</h3>
-                <p className="text-sm text-gray-400">
-                  Trạng thái: {isFullVersion ? "🟢 Đang phát bản FULL" : "🟡 Đang phát bản Preview (Thử nghiệm)"}
-                </p>
-                <div
-                  className="music-card group relative h-72 cursor-pointer overflow-hidden bg-black"
-                  data-audio={nft.fullAudioURL}
-                  data-owner={nft.owner_address} // <-- BẮT BUỘC PHẢI CÓ DÒNG NÀY
-                  onMouseEnter={(e) => playPreview(e.currentTarget)}
-                  onMouseLeave={(e) => stopPreview(e.currentTarget)}
-                  onClick={() => { if (playingId !== nft.id) { setCurrentTrack(nft); setPlayingId(nft.id); } }} >
-                  {playingId === nft.id ? (
-                    nft.fullAudioURL?.includes(".mp3") ? (
-                      <audio
-                        id={`audio-player-${nft.id}`}
-                        muted={false} // 🌟 Bắt buộc phải có dòng này để phá vỡ lệnh cấm của trình duyệt
-                        loop={true}  // Giúp nhạc lặp lại mượt mà khi hover liên tục
-                        src={nft.previewURL}
-                        onTimeUpdate={(e) => {
-                          const audioEl = e.currentTarget;
-                          const isChinhChu = checkIsChinhChu(currentTrack);
-                          if (!isChinhChu && audioEl.currentTime >= 45) {
-                            // 1. Khóa cứng và dừng nhạc ngay lập tức
-                            audioEl.pause();
-                            audioEl.currentTime = 45;
-                            // 2. Tắt trạng thái đang phát trên giao diện
-                            setPlayingId(null);
-                            // 3. Hiển thị thông báo bản quyền (Có thể gọi bảng banner đếm ngược đổi sang màu đỏ)
-                            const banner = document.getElementById('copyright-timer-banner');
-                            const circleBox = document.getElementById('timer-circle-box');
-                            const bTitle = document.getElementById('timer-banner-title');
-                            const bDesc = document.getElementById('timer-banner-desc');
-                            if (banner && circleBox && bTitle && bDesc) { banner.style.display = 'block'; banner.style.borderColor = '#ef4444'; circleBox.innerHTML = '✕'; circleBox.style.borderColor = '#ef4444'; circleBox.style.color = '#ef4444'; bTitle.innerHTML = 'Giới hạn bản quyền 45 giây!'; bDesc.innerHTML = isConnected ? 'Ví của bạn không sở hữu vật phẩm này. Vui lòng mua NFT để nghe trọn vẹn.' : 'Vui lòng kết nối ví <b>Chính chủ</b> để nghe toàn bộ bài hát.'; }
-                          }
-                        }}
-                        autoPlay src={fixIPFS(nft.previewURL)} className="w-full" controls />
-                    ) : (<video src={nft.previewURL} autoPlay controls playsInline preload="metadata"
-                      className="w-full h-full object-contain bg-black" />)
-                  ) : (
-                    <>
-                      <img src={nft?.fullAudioURL?.replace('gateway.pinata.cloud', 'ipfs.io') || '/placeholder.png'} alt={nft.name} loading="lazy" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500 group-hover:scale-105" />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="bg-white/10 backdrop-blur-md p-6 rounded-full border border-white/20 transform transition group-hover:scale-110 shadow-2xl" > <span className="text-2xl">▶️</span> </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-                {/* 3. Khu vực tương tác nút bấm */}
-                <div className="flex gap-2">
-                  {!isFullVersion && (
-                    <button
-                      onClick={() => handleRequestFullAudio(nft)}
-                      disabled={loading}
-                      className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-2 px-4 rounded-lg disabled:opacity-50 transition-all"
-                    >
-                      {loading ? "⌛ Đang xác thực ví..." : "🔒 Nghe Bản FULL (Creator/Owner)"}
-                    </button>
-                  )}
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+  {nfts.map((nft) => (
+    <div key={nft.id} className="bg-slate-900 rounded-[2.5rem] overflow-hidden border border-slate-800 shadow-2xl transition hover:border-blue-600 group">
+      {/* MEDIA VIEW: CLICK TO PLAY */}
+      <div className="nft-card border p-4 rounded-xl bg-slate-900 text-white">
+        {/* 1. Tiêu đề & Trạng thái bản nhạc */}
+        <h3 className="text-xl font-bold">{nft.name}</h3>
+        <p className="text-sm text-gray-400">
+          Trạng thái: {isFullVersion ? "🟢 Đang phát bản FULL" : "🟡 Đang phát bản Preview (Thử nghiệm)"}
+        </p>
+        <div
+          className="music-card group relative h-72 cursor-pointer overflow-hidden bg-black"
+          data-audio={nft.fullAudioURL}
+          data-owner={nft.owner_address} // <-- BẮT BUỘC PHẢI CÓ DÒNG NÀY
+          onMouseEnter={(e) => playPreview(e.currentTarget)}
+          onMouseLeave={(e) => stopPreview(e.currentTarget)}
+          onClick={() => { if (playingId !== nft.id) { setCurrentTrack(nft); setPlayingId(nft.id); } }} >
+          {playingId === nft.id ? (
+            nft.fullAudioURL?.includes(".mp3") ? (
+              <audio
+                id={`audio-player-${nft.id}`}
+                muted={false} // 🌟 Bắt buộc phải có dòng này để phá vỡ lệnh cấm của trình duyệt
+                loop={true}  // Giúp nhạc lặp lại mượt mà khi hover liên tục
+                // 🛠️ ĐÃ SỬA: Xóa bỏ thuộc tính gán lỗi src={nft.previewURL} cũ ở đây
+                src={nft.previewURL && !nft.previewURL.startsWith("error") ? fixIPFS(nft.previewURL) : ""} 
+                autoPlay 
+                className="w-full" 
+                controls 
+                onTimeUpdate={(e) => {
+                  const audioEl = e.currentTarget;
+                  const isChinhChu = checkIsChinhChu(currentTrack);
+                  if (!isChinhChu && audioEl.currentTime >= 45) {
+                    // 1. Khóa cứng và dừng nhạc ngay lập tức
+                    audioEl.pause();
+                    audioEl.currentTime = 45;
+                    // 2. Tắt trạng thái đang phát trên giao diện
+                    setPlayingId(null);
+                    // 3. Hiển thị thông báo bản quyền (Có thể gọi bảng banner đếm ngược đổi sang màu đỏ)
+                    const banner = document.getElementById('copyright-timer-banner');
+                    const circleBox = document.getElementById('timer-circle-box');
+                    const bTitle = document.getElementById('timer-banner-title');
+                    const bDesc = document.getElementById('timer-banner-desc');
+                    if (banner && circleBox && bTitle && bDesc) { banner.style.display = 'block'; banner.style.borderColor = '#ef4444'; circleBox.innerHTML = '✕'; circleBox.style.borderColor = '#ef4444'; circleBox.style.color = '#ef4444'; bTitle.innerHTML = 'Giới hạn bản quyền 45 giây!'; bDesc.innerHTML = isConnected ? 'Ví của bạn không sở hữu vật phẩm này. Vui lòng mua NFT để nghe trọn vẹn.' : 'Vui lòng kết nối ví <b>Chính chủ</b> để nghe toàn bộ bài hát.'; }
+                  }
+                }}
+              />
+            ) : (
+              <video 
+                src={nft.previewURL && !nft.previewURL.startsWith("error") ? fixIPFS(nft.previewURL) : ""} 
+                autoPlay 
+                controls 
+                playsInline 
+                preload="metadata"
+                className="w-full h-full object-contain bg-black" 
+              />
+            )
+          ) : (
+            <>
+              <img src={nft?.fullAudioURL?.replace('gateway.pinata.cloud', 'ipfs.io') || '/placeholder.png'} alt={nft.name} loading="lazy" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500 group-hover:scale-105" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="bg-white/10 backdrop-blur-md p-6 rounded-full border border-white/20 transform transition group-hover:scale-110 shadow-2xl" > <span className="text-2xl">▶️</span> </div>
+              </div>
+            </>
+          )}
+        </div>
+        {/* 3. Khu vực tương tác nút bấm */}
+        <div className="flex gap-2">
+          {!isFullVersion && (
+            <button
+              onClick={() => handleRequestFullAudio(nft)}
+              disabled={loading}
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-2 px-4 rounded-lg disabled:opacity-50 transition-all"
+            >
+              {loading ? "⌛ Đang xác thực ví..." : "🔒 Nghe Bản FULL (Creator/Owner)"}
+            </button>
+          )}
+    {/*}    </div>
+      </div>
+    </div>
+  ))}
+</div> */}
+
 
                   {isFullVersion && (
                     <button
